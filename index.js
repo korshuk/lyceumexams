@@ -19,18 +19,18 @@ express()
     .post('/upload', onFileUpload)
     .get('/api/pupils/list', function (req, res) {
         db.pupils.get(function(err, data){
-            res.json(data);
-        })
+            sendResp(res, data);
+        });
     })
     .get('/api/profiles/list', function (req, res) {
         db.profiles.get(function(err, data){
-            res.json(data);
-        })
+            sendResp(res, data);
+        });
     })
     .get('/api/places/list', function (req, res) {
         db.places.get(function(err, data){
-            res.json(data);
-        })
+            sendResp(res, data);
+        });
     })
     .get('/', function (req, res) {
         res.render('pages/index')
@@ -38,6 +38,12 @@ express()
     .listen(PORT, function() {
         console.log(`Listening on ${ PORT }`)
     });
+
+function sendResp(res, data) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.json(data);
+}
 
 function onFileUpload(req, res) {
     if (!req.files) {
