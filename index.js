@@ -5,15 +5,15 @@ const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
 
-const dbfile = 'db/json.json';
+const dbfile = './db/json.json';
 let db = {};
 
 jsonfile.readFile(dbfile, function(err, obj) {
     db = {
-        places: obj.places,
-        profiles: obj.profiles,
-        pupils: obj.pupils,
-        corpses: createCorpses(obj.places)
+        places: obj.places || [],
+        profiles: obj.profiles || [],
+        pupils: obj.pupils || [],
+        corpses: createCorpses(obj.places || [])
     };
 });
 
