@@ -24,6 +24,7 @@ express()
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
     .post('/upload', onFileUpload)
+    .get('/api/generate', generate)
     .get('/api/search', function (req, res) {
         const search = req.query.search;
         let data = [];
@@ -84,6 +85,146 @@ function sendResp(res, data) {
     res.json(data);
 }
 
+function generate (req, res) {
+    const profilesMap = createProfilesMap(db.profiles);
+    const corpses = db.corpses;
+    const pupils = db.pupils;
+
+    let response = [];
+    let seededPupils;
+
+    let i = 0, corps, j, place, placesLength;
+    let corpsesLength = corpses.length;
+    let profileId;
+    
+    console.log(profilesMap)
+    
+    for (i; i < corpsesLength; i++) {
+        corps = corpses[i];
+        placesLength = corps.places.length;
+
+        for (j = 0; j < placesLength; j++) {
+            place = corps.places[j];
+            profileId = profilesMap[place._id]._id;
+
+            seededPupils = seedPupils(place, profileId, corps.alias);
+            response = response.concat(seededPupils);
+            console.log(profileId, place.name)
+        }
+    }
+
+
+    sendResp(res, response)
+
+}
+
+function seedPupils(place, profileId, corpsAlias) {
+    let profiledPupils;
+    let i = 0, profiledPupilsLength;
+
+    profiledPupils = getProfiledPupils(profileId);
+    
+    profiledPupilsLength = profiledPupils.length;
+
+    generatePupilPicks(profiledPupilsLength, place.audience);
+
+    seedPupilsInPlace(profiledPupils, {
+        audiences: place.audience,
+        placeId: place._id, 
+        corpsId: corpsAlias
+    });
+
+    return profiledPupils;
+}
+
+function getProfiledPupils (profileId) {
+    return db.pupils
+        .filter(function(pupil){
+            return pupil.profile === profileId;
+        });    
+}
+
+function seedPupilsInPlace(pupils, options) {
+    const audiences = options.audiences;
+    const audiencesLength = audiences.length;
+    let i = 0;
+
+    for(i; i < audiencesLength; i++) {
+        seedPupilsInAudience(pupils, {
+            audience: audiences[i],
+            placeId: options.placeId,
+            corpsId: options.corpsId,
+        });
+           
+    }
+}
+
+function seedPupilsInAudience(pupils, options) {
+    const audienceId = options.audience._id;
+    const placeId = options.placeId;
+    const corpsId = options.corpsId;
+    const picks = options.audience.picks;
+    const picksLength = picks.length;
+    let i = 0, pick;
+
+    for(i; i < picksLength; i++) {
+        pick = picks[i];
+        pupils[pick].audience = audienceId;
+        pupils[pick].place = placeId;
+        pupils[pick].corps = corpsId;
+    } 
+}
+
+function generatePupilPicks(profiledPupilsLength, audiences) {
+    let numbersArr = [];
+    let i = 0, picksArray;
+    const audiencesLength = audiences.length;
+
+    for (i; i < profiledPupilsLength; i++ ) { 
+        numbersArr.push(i);
+    }
+
+    for (i = 0; i < audiencesLength; i++) {
+        picksArray = generatePicksForaudience(audiences[i].max);
+
+        audiences[i].count = picksArray.length;
+        audiences[i].picks = picksArray;
+    }
+
+    function generatePicksForaudience(audienceMax) {
+        let picksArray = [];
+        let randomIndex;
+
+        while (picksArray.length < audienceMax){
+            randomIndex = Math.floor(Math.random() * numbersArr.length);
+            picksArray.push(numbersArr[randomIndex]);
+            numbersArr.splice(randomIndex, 1);
+        }
+
+        return picksArray.filter(notEmptyPick);
+    }
+
+    function notEmptyPick(pick) {
+        return pick >= 0;
+    }
+}
+
+
+function createProfilesMap(profiles) {
+    const map = {};
+    let i = 0;
+    let length = profiles.length;
+    let profile;
+
+    for (i; i < length; i++) {
+        profile = profiles[i];
+
+        map[profile.examPlace] = profile;
+    }
+
+    return map;
+}
+
 function onFileUpload(req, res) {
     if (!req.files) {
         return res.status(400).send('No files were uploaded.');
@@ -142,7 +283,9 @@ function createCorpses (places) {
             corpses.push(corpsesMap[corps]);
         }
     }
-    console.log(corpses)
+
+
+
     return Array.from(corpses);
 }
 
