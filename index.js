@@ -5,17 +5,10 @@ const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
 
-const dbfile = './db/json.json';
+const DB_FILE = './db/json.json';
 let db = {};
 
-jsonfile.readFile(dbfile, function(err, obj) {
-    db = {
-        places: obj.places || [],
-        profiles: obj.profiles || [],
-        pupils: obj.pupils || [],
-        corpses: createCorpses(obj.places || [])
-    };
-});
+readDbFromDisk();
 
 
 express()
@@ -47,7 +40,7 @@ express()
         let corps = {}
         let placesQuery = [];
 
-        if (corpsQuery.length) {
+        if (corpsQuery && corpsQuery.length) {
             corps = db.corpses.find(function(element) {
                 return element.alias === corpsQuery;
             })
@@ -87,38 +80,46 @@ function sendResp(res, data) {
 
 function generate (req, res) {
     const profilesMap = createProfilesMap(db.profiles);
-    const corpses = db.corpses;
-    const pupils = db.pupils;
+    const corpses = JSON.parse(JSON.stringify(db.corpses));
 
-    let response = [];
-    let seededPupils;
-
-    let i = 0, corps, j, place, placesLength;
-    let corpsesLength = corpses.length;
-    let profileId;
+    let responsePupils = [];
+    let response = {};
     
-    console.log(profilesMap)
+    let i = 0, corps;
+    let seededPupils;
+    let corpsesLength = corpses.length;
     
     for (i; i < corpsesLength; i++) {
-        corps = corpses[i];
-        placesLength = corps.places.length;
-
-        for (j = 0; j < placesLength; j++) {
-            place = corps.places[j];
-            profileId = profilesMap[place._id]._id;
-
-            seededPupils = seedPupils(place, profileId, corps.alias);
-            response = response.concat(seededPupils);
-            console.log(profileId, place.name)
-        }
+        seededPupils = seedPupilsInCorpse(corpses[i], profilesMap);
+        responsePupils = responsePupils.concat(seededPupils);
     }
 
+    response = {
+        pupils: responsePupils,
+        corpses: corpses
+    };
 
     sendResp(res, response)
 
 }
 
-function seedPupils(place, profileId, corpsAlias) {
+function seedPupilsInCorpse(corps, profilesMap) {
+    const placesLength = corps.places.length;
+    let responsePupils = [];
+    let seededPupils;
+    let i = 0, place, profileId;
+
+    for (i; i < placesLength; i++) {
+        place = corps.places[i]
+        profileId = profilesMap[place._id]._id;
+        seededPupils = seedPupilsInPlace(place, profileId, corps);
+        responsePupils = responsePupils.concat(seededPupils);
+    }
+
+    return responsePupils;
+}
+
+function seedPupilsInPlace(place, profileId, corps) {
     let profiledPupils;
     let i = 0, profiledPupilsLength;
 
@@ -126,25 +127,26 @@ function seedPupils(place, profileId, corpsAlias) {
     
     profiledPupilsLength = profiledPupils.length;
 
-    generatePupilPicks(profiledPupilsLength, place.audience);
+    generatePupilPicks(profiledPupilsLength, place.audience, corps);
 
-    seedPupilsInPlace(profiledPupils, {
+    seedPupilsInAudiences(profiledPupils, {
         audiences: place.audience,
         placeId: place._id, 
-        corpsId: corpsAlias
+        corpsId: corps.alias
     });
 
     return profiledPupils;
 }
 
 function getProfiledPupils (profileId) {
-    return db.pupils
+    let pupils = JSON.parse(JSON.stringify(db.pupils))
         .filter(function(pupil){
             return pupil.profile === profileId;
-        });    
+        });   
+    return  pupils;
 }
 
-function seedPupilsInPlace(pupils, options) {
+function seedPupilsInAudiences(pupils, options) {
     const audiences = options.audiences;
     const audiencesLength = audiences.length;
     let i = 0;
@@ -175,10 +177,14 @@ function seedPupilsInAudience(pupils, options) {
     } 
 }
 
-function generatePupilPicks(profiledPupilsLength, audiences) {
+function generatePupilPicks(profiledPupilsLength, audiences, corps) {
     let numbersArr = [];
     let i = 0, picksArray;
     const audiencesLength = audiences.length;
+
+    if (!corps.count) {
+        corps.count = 0;
+    }
 
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
@@ -186,9 +192,9 @@ function generatePupilPicks(profiledPupilsLength, audiences) {
 
     for (i = 0; i < audiencesLength; i++) {
         picksArray = generatePicksForaudience(audiences[i].max);
-
         audiences[i].count = picksArray.length;
         audiences[i].picks = picksArray;
+        corps.count = corps.count + picksArray.length;
     }
 
     function generatePicksForaudience(audienceMax) {
@@ -230,32 +236,27 @@ function onFileUpload(req, res) {
         return res.status(400).send('No files were uploaded.');
     }
 
-
     var uploadedFile = req.files.dbFile;
 
-    // Use the mv() method to place the file somewhere on your server
-    uploadedFile.mv(dbfile, function(err) {
+    uploadedFile.mv(DB_FILE, function(err) {
         if (err) {
             return res.status(500).send(err);
         } else {
-            jsonfile.readFile(dbfile, function(err, obj) {
-
-               // jsonfile.writeFileSync('db/pupils.json', obj.pupils);
-              //  jsonfile.writeFileSync('db/profiles.json', obj.profiles);
-              //  jsonfile.writeFileSync('db/places.json', obj.places);
-              //  jsonfile.writeFileSync('db/corpses.json', corpses);
-
-                db = {
-                    places: obj.places,
-                    profiles: obj.profiles,
-                    pupils: obj.pupils,
-                    corpses: createCorpses(obj.places)
-                };
-            });
-
+            readDbFromDisk();
 
             res.redirect('/');
         }
+    });
+}
+
+function readDbFromDisk() {
+    jsonfile.readFile(DB_FILE, function(err, obj) {
+        db = {
+            places: obj.places,
+            profiles: obj.profiles,
+            pupils: obj.pupils,
+            corpses: createCorpses(obj.places)
+        };
     });
 }
 
@@ -283,8 +284,6 @@ function createCorpses (places) {
             corpses.push(corpsesMap[corps]);
         }
     }
-
-
 
     return Array.from(corpses);
 }
