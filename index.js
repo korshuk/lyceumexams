@@ -99,6 +99,11 @@ function generate (req, res) {
         corpses: corpses
     };
 
+    //TODO remove with save
+
+    db.pupils = JSON.parse(JSON.stringify(responsePupils))
+    db.corpses = JSON.parse(JSON.stringify(corpses))
+
     sendResp(res, response)
 
 }
@@ -127,7 +132,7 @@ function seedPupilsInPlace(place, profileId, corps) {
     
     profiledPupilsLength = profiledPupils.length;
 
-    generatePupilPicks(profiledPupilsLength, place.audience, corps);
+    generatePupilPicks(profiledPupilsLength, place, corps);
 
     seedPupilsInAudiences(profiledPupils, {
         audiences: place.audience,
@@ -177,27 +182,34 @@ function seedPupilsInAudience(pupils, options) {
     } 
 }
 
-function generatePupilPicks(profiledPupilsLength, audiences, corps) {
+function generatePupilPicks(profiledPupilsLength, place, corps) {
     let numbersArr = [];
+    let audiences = place.audience;
+    
     let i = 0, picksArray;
     const audiencesLength = audiences.length;
 
     if (!corps.count) {
         corps.count = 0;
     }
+    if (!place.count) {
+        place.count = 0;
+    }
+    
 
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
     }
 
     for (i = 0; i < audiencesLength; i++) {
-        picksArray = generatePicksForaudience(audiences[i].max);
+        picksArray = generatePicksForAudience(audiences[i].max);
         audiences[i].count = picksArray.length;
         audiences[i].picks = picksArray;
-        corps.count = corps.count + picksArray.length;
+        place.count = place.count + picksArray.length;        
     }
+    corps.count = corps.count + place.count;
 
-    function generatePicksForaudience(audienceMax) {
+    function generatePicksForAudience(audienceMax) {
         let picksArray = [];
         let randomIndex;
 
