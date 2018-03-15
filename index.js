@@ -252,10 +252,10 @@ function onFileUpload(req, res) {
 function readDbFromDisk() {
     jsonfile.readFile(DB_FILE, function(err, obj) {
         db = {
-            places: obj.places,
-            profiles: obj.profiles,
-            pupils: obj.pupils,
-            corpses: createCorpses(obj.places)
+            places: obj.places || [],
+            profiles: obj.profiles || [],
+            pupils: obj.pupils || [],
+            corpses: createCorpses(obj.places || [])
         };
     });
 }
