@@ -38,7 +38,7 @@ express()
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
     .post('/upload', onFileUpload)
-    .get('/api/dicionary', getDicionary)
+    .get('/api/dictionary', getDicionary)
     .get('/api/generate', generate)
     .get('/api/search', function (req, res) {
         const search = req.query.search;
