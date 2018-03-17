@@ -5,18 +5,40 @@ const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
 
+const corpsesRouter = express.Router(); 
+
 const DB_FILE = './db/json.json';
 let db = {};
 
 readDbFromDisk();
 
+corpsesRouter.route('/')
+    .get(function (req, res) {
+        sendResp(res, db.corpses);
+    })
+corpsesRouter.route('/:id')
+    .get(function (req, res) {
+        const id = req.params.id;
+        const length = db.corpses.length;
+        let i = 0;
+
+        for (i; i < db.corpses.length; i++) {
+            if (db.corpses[i].alias === id) {
+                sendResp(res, db.corpses[i])
+                return;
+            }
+        }
+        sendResp(res, {error: 'nothing found'});
+    })
 
 express()
     .use(express.static(path.join(__dirname, 'public')))
     .use(fileUpload())
+    .use('/api/corpses', corpsesRouter)
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
     .post('/upload', onFileUpload)
+    .get('/api/dicionary', getDicionary)
     .get('/api/generate', generate)
     .get('/api/search', function (req, res) {
         const search = req.query.search;
@@ -32,35 +54,34 @@ express()
                             return pupil;     
                         });
         }
-        sendResp(res, []);
+        sendResp(res, data);
     })
     .get('/api/pupils', function (req, res) {
         const query = req.query;
-        const corpsQuery = req.query.corps;
+        const corpsQuery = query.corps;
+        const placeQuery = query.place;
+        
         let corps = {}
-        let placesQuery = [];
+       
+
+        let responsePupils = JSON.parse(JSON.stringify(db.pupils));
 
         if (corpsQuery && corpsQuery.length) {
-            corps = db.corpses.find(function(element) {
-                return element.alias === corpsQuery;
-            })
-            for(let i = 0; i < corps.places.length; i++) {
-                console.log('@@',corps.places[i]._id )
-                placesQuery.push(corps.places[i]._id)
-            }
-
-           // db.pupils.filter(function)
+            responsePupils = responsePupils.filter(function(pupil){
+                return pupil.corps === corpsQuery;
+            });
         }
 
-        console.log(corps, placesQuery)
+        if (placeQuery && placeQuery.length) {
+            responsePupils = responsePupils.filter(function(pupil){
+                return pupil.place === placeQuery;
+            });
+        }
         
-        sendResp(res, db.pupils);
+        sendResp(res, responsePupils);
     })
     .get('/api/profiles', function (req, res) {
         sendResp(res, db.profiles);
-    })
-    .get('/api/corpses', function (req, res) {
-        sendResp(res, db.corpses);
     })
     .get('/api/places', function (req, res) {
         sendResp(res, db.places);
@@ -76,6 +97,28 @@ function sendResp(res, data) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     res.json(data);
+}
+
+function getDicionary (req, res) {
+    let data = {
+        corpses: {},
+        places: {},
+        audiences: {}
+    }
+
+    for (let i = 0; i < db.corpses.length; i++) {
+        data.corpses[db.corpses[i].alias] = db.corpses[i];
+
+        for (let j = 0; j < db.corpses[i].places.length; j++) {
+            data.places[db.corpses[i].places[j]._id] = db.corpses[i].places[j];
+
+            for (let k = 0; k < db.corpses[i].places[j].audience.length; k++) {
+                data.audiences[db.corpses[i].places[j].audience[k]._id] = db.corpses[i].places[j].audience[k];
+            }
+        }
+    }
+
+    sendResp(res, data)
 }
 
 function generate (req, res) {
@@ -195,6 +238,12 @@ function generatePupilPicks(profiledPupilsLength, place, corps) {
     if (!place.count) {
         place.count = 0;
     }
+    if (!corps.max) {
+        corps.max = 0;
+    }
+    if (!place.max) {
+        place.max = 0;
+    }
     
 
     for (i; i < profiledPupilsLength; i++ ) { 
@@ -205,9 +254,11 @@ function generatePupilPicks(profiledPupilsLength, place, corps) {
         picksArray = generatePicksForAudience(audiences[i].max);
         audiences[i].count = picksArray.length;
         audiences[i].picks = picksArray;
-        place.count = place.count + picksArray.length;        
+        place.count = place.count + picksArray.length;  
+        place.max = place.max + audiences[i].max;        
     }
     corps.count = corps.count + place.count;
+    corps.max = corps.max + place.max;
 
     function generatePicksForAudience(audienceMax) {
         let picksArray = [];
