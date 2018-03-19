@@ -352,6 +352,7 @@ function readDbFromDisk(obj) {
             places: obj.places || [],
             profiles: obj.profiles || [],
             pupils: obj.pupils || [],
+            pupilsG: [],
             corpses: createCorpses(obj.places || [])
         }
     }
