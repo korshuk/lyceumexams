@@ -4,27 +4,44 @@ const PORT = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
+const request = require('./request/request')
+const requestOptions = {
+    host: 'lyceum.by',
+    port: 80,
+    path: '/files/list-export.json',
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json'
+    }
+};
 
 const corpsesRouter = express.Router(); 
 
 const DB_FILE = './db/json.json';
 let db = {};
 
-readDbFromDisk();
+request.getJSON(requestOptions, function(statusCode, result) {
+  //  console.log("onResult: (" + statusCode + ")" + JSON.stringify(result));
+   // res.statusCode = statusCode;
+   // res.send(result);
+   readDbFromDisk(result);
+});
+
+
 
 corpsesRouter.route('/')
     .get(function (req, res) {
-        sendResp(res, db.corpses);
+        sendResp(res, db.corpsesG);
     })
 corpsesRouter.route('/:id')
     .get(function (req, res) {
         const id = req.params.id;
-        const length = db.corpses.length;
+        const length = db.corpsesG.length;
         let i = 0;
 
-        for (i; i < db.corpses.length; i++) {
-            if (db.corpses[i].alias === id) {
-                sendResp(res, db.corpses[i])
+        for (i; i < db.corpsesG.length; i++) {
+            if (db.corpsesG[i].alias === id) {
+                sendResp(res, db.corpsesG[i])
                 return;
             }
         }
@@ -45,7 +62,7 @@ express()
         let data = [];
         
         if (search.length > 0) {
-            data = db.pupils
+            data = db.pupilsG
                         .filter(function(pupil){
                             return pupil.firstName.indexOf(search) > -1;
                         })
@@ -64,7 +81,7 @@ express()
         let corps = {}
        
 
-        let responsePupils = JSON.parse(JSON.stringify(db.pupils));
+        let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
 
         if (corpsQuery && corpsQuery.length) {
             responsePupils = responsePupils.filter(function(pupil){
@@ -103,19 +120,27 @@ function getDicionary (req, res) {
     let data = {
         corpses: {},
         places: {},
-        audiences: {}
+        audiences: {},
+        profiles: {}
     }
 
     for (let i = 0; i < db.corpses.length; i++) {
-        data.corpses[db.corpses[i].alias] = db.corpses[i];
+        data.corpses[db.corpses[i].alias] = db.corpses[i].name;
 
         for (let j = 0; j < db.corpses[i].places.length; j++) {
-            data.places[db.corpses[i].places[j]._id] = db.corpses[i].places[j];
+            data.places[db.corpses[i].places[j]._id] = {
+                code: db.corpses[i].places[j].code,
+                name: db.corpses[i].places[j].name
+            }
 
             for (let k = 0; k < db.corpses[i].places[j].audience.length; k++) {
-                data.audiences[db.corpses[i].places[j].audience[k]._id] = db.corpses[i].places[j].audience[k];
+                data.audiences[db.corpses[i].places[j].audience[k]._id] = db.corpses[i].places[j].audience[k].name;
             }
         }
+    }
+
+    for (i = 0; i < db.profiles.length; i++) {
+      data.profiles[db.profiles[i]._id] = db.profiles[i].name;
     }
 
     sendResp(res, data)
@@ -144,8 +169,8 @@ function generate (req, res) {
 
     //TODO remove with save
 
-    db.pupils = JSON.parse(JSON.stringify(responsePupils))
-    db.corpses = JSON.parse(JSON.stringify(corpses))
+    db.pupilsG = JSON.parse(JSON.stringify(responsePupils))
+    db.corpsesG = JSON.parse(JSON.stringify(corpses))
 
     sendResp(res, response)
 
@@ -305,22 +330,31 @@ function onFileUpload(req, res) {
         if (err) {
             return res.status(500).send(err);
         } else {
-            readDbFromDisk();
+        //    readDbFromDisk();
 
             res.redirect('/');
         }
     });
 }
 
-function readDbFromDisk() {
-    jsonfile.readFile(DB_FILE, function(err, obj) {
+function readDbFromDisk(obj) {
+    /*jsonfile.readFile(DB_FILE, function(err, obj) {
         db = {
             places: obj.places || [],
             profiles: obj.profiles || [],
             pupils: obj.pupils || [],
             corpses: createCorpses(obj.places || [])
         };
-    });
+    });*/
+
+    if (obj) {
+        db = {
+            places: obj.places || [],
+            profiles: obj.profiles || [],
+            pupils: obj.pupils || [],
+            corpses: createCorpses(obj.places || [])
+        }
+    }
 }
 
 function createCorpses (places) {
