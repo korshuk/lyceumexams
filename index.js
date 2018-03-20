@@ -19,6 +19,7 @@ const corpsesRouter = express.Router();
 
 const DB_FILE = './db/json.json';
 let db = {};
+let generateStatus = false;
 
 request.getJSON(requestOptions, function(statusCode, result) {
   //  console.log("onResult: (" + statusCode + ")" + JSON.stringify(result));
@@ -57,6 +58,9 @@ express()
     .post('/upload', onFileUpload)
     .get('/api/dictionary', getDicionary)
     .get('/api/generate', generate)
+    .get('/api/generateStatus', function (req, res) {
+        sendResp(res, generateStatus)
+    })
     .get('/api/search', function (req, res) {
         const search = req.query.search;
         let data = [];
@@ -163,7 +167,6 @@ function generate (req, res) {
     }
 
     response = {
-        pupils: responsePupils,
         corpses: corpses
     };
 
@@ -172,6 +175,7 @@ function generate (req, res) {
     db.pupilsG = JSON.parse(JSON.stringify(responsePupils))
     db.corpsesG = JSON.parse(JSON.stringify(corpses))
 
+    generateStatus = true;
     sendResp(res, response)
 
 }
