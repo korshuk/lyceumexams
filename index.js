@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const path = require('path');
 const PORT = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
@@ -50,13 +51,16 @@ corpsesRouter.route('/:id')
     })
 
 express()
+    .use(bodyParser.json())
+    .use(bodyParser.urlencoded({ extended: true }))
     .use(express.static(path.join(__dirname, 'public')))
     .use(fileUpload())
     .use('/api/corpses', corpsesRouter)
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
     .post('/upload', onFileUpload)
-    .get('/api/dictionary', getDicionary)
+    .post('/api/changeaudience', changeAudience)
+    .get('/api/dictionary', getDictionary)
     .get('/api/generate', generate)
     .get('/api/generateStatus', function (req, res) {
         sendResp(res, generateStatus)
@@ -77,27 +81,8 @@ express()
         }
         sendResp(res, data);
     })
-    .get('/api/pupils', function (req, res) {
-        const query = req.query;
-        const corpsQuery = query.corps;
-        const placeQuery = query.place;
-        
-        let corps = {}
-       
-
-        let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
-
-        if (corpsQuery && corpsQuery.length) {
-            responsePupils = responsePupils.filter(function(pupil){
-                return pupil.corps === corpsQuery;
-            });
-        }
-
-        if (placeQuery && placeQuery.length) {
-            responsePupils = responsePupils.filter(function(pupil){
-                return pupil.place === placeQuery;
-            });
-        }
+    .get('/api/pupils', function (req, res) {        
+        let responsePupils = getFilteredPupils(req);
         
         sendResp(res, responsePupils);
     })
@@ -114,13 +99,35 @@ express()
         console.log(`Listening on ${ PORT }`)
     });
 
+function getFilteredPupils(req) {
+    const query = req.query;
+    const corpsQuery = query.corps;
+    const placeQuery = query.place;
+
+    let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
+
+    if (corpsQuery && corpsQuery.length) {
+        responsePupils = responsePupils.filter(function(pupil){
+            return pupil.corps === corpsQuery;
+        });
+    }
+
+    if (placeQuery && placeQuery.length) {
+        responsePupils = responsePupils.filter(function(pupil){
+            return pupil.place === placeQuery;
+        });
+    }
+
+    return responsePupils;
+}
+
 function sendResp(res, data) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     res.json(data);
 }
 
-function getDicionary (req, res) {
+function getDictionary (req, res) {
     let data = {
         corpses: {},
         places: {},
@@ -198,13 +205,10 @@ function seedPupilsInCorpse(corps, profilesMap) {
 
 function seedPupilsInPlace(place, profileId, corps) {
     let profiledPupils;
-    let i = 0, profiledPupilsLength;
 
     profiledPupils = getProfiledPupils(profileId);
-    
-    profiledPupilsLength = profiledPupils.length;
 
-    generatePupilPicks(profiledPupilsLength, place, corps);
+    generatePupilPicks(profiledPupils, place, corps);
 
     seedPupilsInAudiences(profiledPupils, {
         audiences: place.audience,
@@ -215,12 +219,16 @@ function seedPupilsInPlace(place, profileId, corps) {
     return profiledPupils;
 }
 
-function getProfiledPupils (profileId) {
-    let pupils = JSON.parse(JSON.stringify(db.pupils))
-        .filter(function(pupil){
-            return pupil.profile === profileId;
-        });   
+function getProfiledPupils (profileId, belLangFlag) {
+    let pupils = JSON.parse(JSON.stringify(db.pupils)).filter(filterPupilsByProfileAndLang);       
+    
     return  pupils;
+
+    function filterPupilsByProfileAndLang(pupil) {
+        let profileFlag = pupil.profile === profileId;
+
+        return  profileFlag;
+    }
 }
 
 function seedPupilsInAudiences(pupils, options) {
@@ -254,9 +262,15 @@ function seedPupilsInAudience(pupils, options) {
     } 
 }
 
-function generatePupilPicks(profiledPupilsLength, place, corps) {
+function generatePupilPicks(profiledPupils, place, corps) {
+    let profiledPupilsLength = profiledPupils.length;
+    let belPupilsLength = profiledPupils.filter(function(pupil){
+        return pupil.needBel === true
+    }).length;
     let numbersArr = [];
-    let audiences = place.audience;
+    let audiences = place.audience.sort(function(a, b){
+        return a.max - b.max;
+    });
     
     let i = 0, picksArray;
     const audiencesLength = audiences.length;
@@ -278,9 +292,9 @@ function generatePupilPicks(profiledPupilsLength, place, corps) {
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
     }
-
+    console.log('!!!!', belPupilsLength)
     for (i = 0; i < audiencesLength; i++) {
-        picksArray = generatePicksForAudience(audiences[i].max);
+        picksArray = generatePicksForAudience(audiences[i]);
         audiences[i].count = picksArray.length;
         audiences[i].picks = picksArray;
         place.count = place.count + picksArray.length;  
@@ -289,16 +303,48 @@ function generatePupilPicks(profiledPupilsLength, place, corps) {
     corps.count = corps.count + place.count;
     corps.max = corps.max + place.max;
 
-    function generatePicksForAudience(audienceMax) {
+    function generatePicksForAudience(audience) {
+        console.log('generatePicksForAudience', audience.bel === true, numbersArr.length)
+        let audienceMax = audience.max;
         let picksArray = [];
         let randomIndex;
+        let belAudienceFlag = audience.bel === true;
+        let belPupilFlag;
+
+        if (numbersArr.length <= audienceMax) {
+            audienceMax = numbersArr.length
+        }
+        if (belAudienceFlag) {
+            
+            if (belPupilsLength <= audienceMax) {
+                audienceMax = belPupilsLength
+            }
+          //  console.log('@@', belPupilsLength, audienceMax)
+        }
+
+        
 
         while (picksArray.length < audienceMax){
             randomIndex = Math.floor(Math.random() * numbersArr.length);
-            picksArray.push(numbersArr[randomIndex]);
-            numbersArr.splice(randomIndex, 1);
-        }
+            belPupilFlag = profiledPupils[numbersArr[randomIndex]].needBel === true;
+            if (belPupilFlag) {
+                console.log('belPupilFlag', belPupilFlag, randomIndex, numbersArr[randomIndex])
+            }
+            if (belAudienceFlag === false) {
+                if (belPupilFlag === false) {
+                    picksArray.push(numbersArr[randomIndex]);
+                    numbersArr.splice(randomIndex, 1);
+                }
+            } else {
+                if (belPupilFlag === true) {
+                   picksArray.push(numbersArr[randomIndex]);
+                   numbersArr.splice(randomIndex, 1);
+                   belPupilsLength = belPupilsLength - 1;
+               }
+            }
 
+
+        }
         return picksArray.filter(notEmptyPick);
     }
 
@@ -321,6 +367,62 @@ function createProfilesMap(profiles) {
     }
 
     return map;
+}
+
+function changeAudience(req, res) {
+    var response;
+
+    var pupilId = req.body.pupilId;
+    var audienceId = req.body.audienceId;
+
+    var pupil;
+    var corps;
+    var oldPlace;
+    var oldAudience;
+    var newPlace;
+    var newAudience;
+
+    for (var i = 0; i < db.pupilsG.length; i++) {
+        if ( db.pupilsG[i]._id === pupilId) {
+            pupil = db.pupilsG[i]
+        }
+    }
+
+    for (var i = 0; i < db.corpsesG.length; i++) {
+        if ( db.corpsesG[i].alias === pupil.corps) {
+            corps = db.corpsesG[i]
+        }
+    }
+
+    for (var i = 0; i < corps.places.length; i++) {
+        if (corps.places[i]._id === pupil.place) {
+            oldPlace = corps.places[i];
+        }
+        for (var j = 0; j < corps.places[i].audience.length; j++) {
+            if (corps.places[i].audience[j]._id === audienceId) {
+                newPlace = corps.places[i];
+                newAudience = corps.places[i].audience[j];
+            }
+            if (corps.places[i].audience[j]._id === pupil.audience) {
+                oldAudience = corps.places[i].audience[j];
+            }
+        }
+    }
+    oldPlace.count = oldPlace.count - 1;
+    oldAudience.count = oldAudience.count - 1;
+    newPlace.count = newPlace.count + 1;
+    newAudience.count = newAudience.count + 1;
+
+    pupil.place = newPlace._id;
+    pupil.audience = newAudience._id;
+
+    
+    response = {
+        corpses: db.corpsesG,
+        pupils: getFilteredPupils(req)
+    };
+
+    sendResp(res, response)
 }
 
 function onFileUpload(req, res) {
@@ -371,6 +473,15 @@ function createCorpses (places) {
     let length = places.length;
 
     for (i; i < length; i++) {
+        places[i].audience = places[i].audience.sort(function(a,b){
+            if (a.name < b.name) {
+                return -1;
+              }
+              if (a.name > b.name) {
+                return 1;
+              }
+              return 0;
+        })
         corps = places[i];
         if (corpsesMap[corps.name]) {
             corpsesMap[corps.name].places.push(corps)
