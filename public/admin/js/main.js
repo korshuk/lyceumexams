@@ -18,13 +18,23 @@
             getPupils: getPupils,
             changeAudience: changeAudience,
             getDictionary: getDictionary,
-            generate: generate
+            generate: generate,
+            saveSeats: saveSeats,
+            getGenerateStatus: getGenerateStatus
         }
 
         return service;
 
         function generate () {
             return $http.get('/api/generate')
+        }
+
+        function getGenerateStatus () {
+            return $http.get('/api/generateStatus')
+        }
+
+        function saveSeats () {
+            return $http.get('/api/saveseats')
         }
 
         function getCorpses () {
@@ -63,6 +73,7 @@
         vm.currentPlace = null;
         vm.currentAudience = null;
 
+        vm.saveSeats = saveSeats;
         vm.generate = generate;
 
         vm.changeCorps = changeCorps;
@@ -74,9 +85,27 @@
 
         api.getDictionary().then(onDictionary);
         api.getCorpses().then(onCorpsesGet);
+        api.getGenerateStatus().then(onGenerateStatusGet);
 
         function generate() {
-            api.generate();
+            api
+                .generate()
+                .then(onSuccess);
+
+            function onSuccess() {
+                window.location = window.location;
+            }    
+        }
+
+        function saveSeats() {
+            api
+                .saveSeats()
+                .then(onSuccess);
+
+            function  onSuccess() {
+                var win = window.open('/api/saved-seats.json', '_blank');
+                win.focus();
+            }
         }
 
         function dropped(dragEl, dropEl) {
@@ -175,6 +204,10 @@
 
         function onDictionary(res) {
             vm.dictionary = res.data;
+        }
+
+        function onGenerateStatusGet(res) {
+            vm.generated = res.data
         }
 
         function pupilFilter(pupil) {

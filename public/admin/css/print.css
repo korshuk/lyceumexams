@@ -1,0 +1,23 @@
+@media all {
+    .page-break { display: none; }
+    .table.table-small {
+        width: 60%;
+    }
+    .table.table-small td, .table.table-small th  {
+        padding: .25rem;
+    }
+}
+
+@media print {
+    .page-break { display: block; page-break-before: always; }
+    body {
+        -webkit-print-color-adjust: exact;
+      }
+    @page {
+        margin: 2cm 2cm 2cm 1.5cm; /* Отступы для всех левых страниц */ 
+    }
+
+    .table td, .table th {
+         background-color: transparent !important;
+    }
+}

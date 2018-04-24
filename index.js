@@ -5,8 +5,19 @@ const PORT = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
+
 const request = require('./request/request')
-const requestOptions = {
+
+const requestSavedOptions = {
+    host: 'lyceum.by',
+    port: 80,
+    path: '/files/saved-seats.json',
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json'
+    }
+}
+const requestDBOptions = {
     host: 'lyceum.by',
     port: 80,
     path: '/files/list-export.json',
@@ -22,13 +33,38 @@ const DB_FILE = './db/json.json';
 let db = {};
 let generateStatus = false;
 
-request.getJSON(requestOptions, function(statusCode, result) {
-  //  console.log("onResult: (" + statusCode + ")" + JSON.stringify(result));
-   // res.statusCode = statusCode;
-   // res.send(result);
-   readDbFromDisk(result);
-});
 
+request.getJSON(requestSavedOptions, function(statusCode, result) {
+    generateStatus = true;
+    console.log('#ok')
+
+    db.pupilsG = result.pupils;
+    db.corpsesG = result.corpses;
+    
+    request.getJSON(requestDBOptions, function(statusCode, result) {
+        readDbFromDisk(result);
+    });
+ }, function(error) {
+    console.log('#error')
+    generateStatus = false;
+    request.getJSON(requestDBOptions, function(statusCode, result) {
+        readDbFromDisk(result);
+    });
+ });
+ 
+ function readDbFromDisk(obj) {
+    if (obj) {
+        db.places = obj.places || [];
+        db.profiles = obj.profiles || [];
+        db.pupils = obj.pupils || [];
+        db.corpses = createCorpses(obj.places || []);
+
+        if (!generateStatus) {
+            db.pupilsG= [];
+            db.corpsesG= createCorpses(obj.places || []);
+        }
+    }
+}
 
 
 corpsesRouter.route('/')
@@ -48,7 +84,43 @@ corpsesRouter.route('/:id')
             }
         }
         sendResp(res, {error: 'nothing found'});
-    })
+    });
+
+corpsesRouter.route('/print/:id.html')
+    .get(function(req, res){
+        const id = req.params.id;
+        const length = db.corpsesG.length;
+        let i = 0;
+
+        for (i; i < db.corpsesG.length; i++) {
+            if (db.corpsesG[i].alias === id) {
+
+                let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
+
+                responsePupils = responsePupils
+                    .filter(function(pupil){
+                        return pupil.corps === id;
+                    })
+                    .sort(function(a,b){
+                        if (a.audience < b.audience) {
+                            return -1;
+                        }
+                        if (a.audience > b.audience) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+
+                res.render('pages/corpsPrint', {
+                    pupils: responsePupils,
+                    corps: db.corpsesG[i],
+                    dictionary: generateDictionary()
+                })
+                return;
+            }
+        }
+        res.render('pages/notFound')
+    });
 
 express()
     .use(bodyParser.json())
@@ -62,6 +134,8 @@ express()
     .post('/api/changeaudience', changeAudience)
     .get('/api/dictionary', getDictionary)
     .get('/api/generate', generate)
+    .get('/api/saveseats', saveseats)
+    .get('/api/saved-seats.json', returnSavedFile)
     .get('/api/generateStatus', function (req, res) {
         sendResp(res, generateStatus)
     })
@@ -128,6 +202,12 @@ function sendResp(res, data) {
 }
 
 function getDictionary (req, res) {
+    const data = generateDictionary();
+
+    sendResp(res, data)
+}
+
+function generateDictionary() {
     let data = {
         corpses: {},
         places: {},
@@ -154,7 +234,22 @@ function getDictionary (req, res) {
       data.profiles[db.profiles[i]._id] = db.profiles[i].name;
     }
 
-    sendResp(res, data)
+    return data;
+}
+
+function saveseats(req, res) {
+    db.pupilsS = JSON.parse(JSON.stringify(db.pupilsG))
+    db.corpsesS = JSON.parse(JSON.stringify(db.corpsesG))
+    sendResp(res, db.pupilsS)
+}
+
+function returnSavedFile(req, res) {
+    var response = {
+        pupils: db.pupilsS,
+        corpses: db.corpsesS
+    }
+    
+    sendResp(res, response)
 }
 
 function generate (req, res) {
@@ -353,7 +448,6 @@ function generatePupilPicks(profiledPupils, place, corps) {
     }
 }
 
-
 function createProfilesMap(profiles) {
     const map = {};
     let i = 0;
@@ -441,28 +535,6 @@ function onFileUpload(req, res) {
             res.redirect('/');
         }
     });
-}
-
-function readDbFromDisk(obj) {
-    /*jsonfile.readFile(DB_FILE, function(err, obj) {
-        db = {
-            places: obj.places || [],
-            profiles: obj.profiles || [],
-            pupils: obj.pupils || [],
-            corpses: createCorpses(obj.places || [])
-        };
-    });*/
-
-    if (obj) {
-        db = {
-            places: obj.places || [],
-            profiles: obj.profiles || [],
-            pupils: obj.pupils || [],
-            pupilsG: [],
-            corpses: createCorpses(obj.places || []),
-            corpsesG: createCorpses(obj.places || [])
-        }
-    }
 }
 
 function createCorpses (places) {
