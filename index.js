@@ -1,4 +1,5 @@
 const express = require('express');
+const aws = require('aws-sdk');
 const bodyParser = require('body-parser');
 const path = require('path');
 const PORT = process.env.PORT || 5000;
@@ -29,10 +30,15 @@ const requestDBOptions = {
 
 const corpsesRouter = express.Router(); 
 
+const s3 = new aws.S3();
+aws.config.region = 'eu-west-2';
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const DB_FILE = './db/json.json';
 let db = {};
+
 let generateStatus = false;
 
+console.log(process.env.S3_BUCKET_NAME);
 
 request.getJSON(requestSavedOptions, function(statusCode, result) {
     generateStatus = true;
@@ -63,6 +69,18 @@ request.getJSON(requestSavedOptions, function(statusCode, result) {
             db.pupilsG= [];
             db.corpsesG= createCorpses(obj.places || []);
         }
+
+        s3.putObject(
+            {
+                Bucket: S3_BUCKET_NAME,
+                Key: 'lyceumDB.json',
+                Body: JSON.stringify(db), 
+                ContentType: "application/json"
+            },
+            function(err,data) {
+                console.log(JSON.stringify(err)+" "+JSON.stringify(data));
+            });
+
     }
 }
 
