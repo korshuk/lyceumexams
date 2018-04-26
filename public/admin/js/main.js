@@ -72,6 +72,7 @@
         vm.currentCorps = {};
         vm.currentPlace = null;
         vm.currentAudience = null;
+        vm.cleanDataLoaded = false;
 
         vm.saveSeats = saveSeats;
         vm.generate = generate;
@@ -204,6 +205,7 @@
 
         function onDictionary(res) {
             vm.dictionary = res.data;
+            vm.cleanDataLoaded = JSON.stringify(vm.dictionary.profiles) !== JSON.stringify({})
         }
 
         function onGenerateStatusGet(res) {

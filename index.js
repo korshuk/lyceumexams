@@ -29,18 +29,75 @@ const requestDBOptions = {
 };
 
 const corpsesRouter = express.Router(); 
+const uploadRouter = express.Router(); 
 
 const s3 = new aws.S3();
 aws.config.region = 'eu-west-2';
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+
+const DB_DIRECTORY = './db/';
+const CLEAN_FILE_NAME = 'clean-data.json';
+const DB_FILE_NAME = 'db.json';
 const DB_FILE = './db/json.json';
-let db = {};
+let db = {
+    places: [],
+    profiles: [],
+    pupils: [],
+    corpses: [],
+    pupilsG: [],
+    corpsesG: []
+};
 
 let generateStatus = false;
+let ClenDataFlag = false;
 
-console.log(process.env.S3_BUCKET_NAME);
+loadCleanData();
 
-request.getJSON(requestSavedOptions, function(statusCode, result) {
+function loadCleanData() {
+    const s3CleanDataParams = {
+        Bucket: S3_BUCKET_NAME,
+        Key: CLEAN_FILE_NAME
+    };
+
+    const s3DBDataParams = {
+        Bucket: S3_BUCKET_NAME,
+        Key: DB_FILE_NAME
+    };
+
+    let fileData;
+
+    s3.getObject(s3CleanDataParams, onResponce);
+    
+    function onResponce(err, res) {
+            if (err === null) {
+                console.log('1')
+                fileData = res.Body;
+                s3.getObject(s3DBDataParams, onDBResponce);
+            } else {
+                ClenDataFlag = false
+            }
+    }
+
+    function onDBResponce (err, res) {
+        console.log(arguments)
+        console.log('2')
+        if (err === null) {
+            fileData = res.Body;
+        } else {
+
+        }
+        setCleanData(fileData)
+    }
+}
+
+function setCleanData(data) {
+    var json = JSON.parse(data.toString());
+    console.log('3', json)
+    readDbFromDisk(json)
+}
+
+
+/*request.getJSON(requestSavedOptions, function(statusCode, result) {
     generateStatus = true;
     console.log('#ok')
 
@@ -56,33 +113,8 @@ request.getJSON(requestSavedOptions, function(statusCode, result) {
     request.getJSON(requestDBOptions, function(statusCode, result) {
         readDbFromDisk(result);
     });
- });
- 
- function readDbFromDisk(obj) {
-    if (obj) {
-        db.places = obj.places || [];
-        db.profiles = obj.profiles || [];
-        db.pupils = obj.pupils || [];
-        db.corpses = createCorpses(obj.places || []);
+ });*/
 
-        if (!generateStatus) {
-            db.pupilsG= [];
-            db.corpsesG= createCorpses(obj.places || []);
-        }
-
-        s3.putObject(
-            {
-                Bucket: S3_BUCKET_NAME,
-                Key: 'lyceumDB.json',
-                Body: JSON.stringify(db), 
-                ContentType: "application/json"
-            },
-            function(err,data) {
-                console.log(JSON.stringify(err)+" "+JSON.stringify(data));
-            });
-
-    }
-}
 
 
 corpsesRouter.route('/')
@@ -140,15 +172,33 @@ corpsesRouter.route('/print/:id.html')
         res.render('pages/notFound')
     });
 
+
+uploadRouter.route('/cleanData')
+    .post(function (req, res) {
+        if (!req.files) {
+            return res.status(400).send('No files were uploaded.');
+        }
+    
+        var uploadedFile = req.files.cleanDataFile;
+    
+        uploadCleanDataFileToS3(uploadedFile.data, onFileUploaded);                
+          
+        function onFileUploaded () {
+            setCleanData(uploadedFile.data)
+            res.redirect('/admin/generate.html');
+        }
+    });
+
 express()
     .use(bodyParser.json())
     .use(bodyParser.urlencoded({ extended: true }))
     .use(express.static(path.join(__dirname, 'public')))
     .use(fileUpload())
-    .use('/api/corpses', corpsesRouter)
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
-    .post('/upload', onFileUpload)
+    //.post('/upload', onFileUpload)
+    .use('/api/corpses', corpsesRouter)
+    .use('/upload', uploadRouter)
     .post('/api/changeaudience', changeAudience)
     .get('/api/dictionary', getDictionary)
     .get('/api/generate', generate)
@@ -190,6 +240,7 @@ express()
     .listen(PORT, function() {
         console.log(`Listening on ${ PORT }`)
     });
+
 
 function getFilteredPupils(req) {
     const query = req.query;
@@ -296,6 +347,7 @@ function generate (req, res) {
     db.corpsesG = JSON.parse(JSON.stringify(corpses))
 
     generateStatus = true;
+    updateDBFile();
     sendResp(res, response)
 
 }
@@ -534,6 +586,8 @@ function changeAudience(req, res) {
         pupils: getFilteredPupils(req)
     };
 
+    updateDBFile();
+
     sendResp(res, response)
 }
 
@@ -590,6 +644,55 @@ function createCorpses (places) {
     }
 
     return Array.from(corpses);
+}
+
+function uploadCleanDataFileToS3(data, next) {
+    const proprS3 = {
+        Bucket: S3_BUCKET_NAME,
+        Key: CLEAN_FILE_NAME,
+        Body: data, 
+        ContentType: "application/json"
+    }
+
+    s3.putObject(proprS3, onUploaded);
+
+    function onUploaded(err, s3data) {
+        if (next) {
+            next(data);
+        }
+    }
+}
+
+function readDbFromDisk(obj) {
+    console.log(obj.corpsesG)
+    if (obj) {
+        db.places = obj.places || [];
+        db.profiles = obj.profiles || [];
+        db.pupils = obj.pupils || [];
+        db.corpses = createCorpses(obj.places || []);
+        db.pupilsG=  obj.pupilsG || [];
+        db.corpsesG= obj.corpsesG || createCorpses(obj.places || []);
+
+        ClenDataFlag = true;
+       
+        updateDBFile();
+    }
+}
+
+function updateDBFile() {
+    console.log(db.corpsesG[0])
+    s3.putObject(
+        {
+            Bucket: S3_BUCKET_NAME,
+            Key: DB_FILE_NAME,
+            Body: JSON.stringify(db), 
+            ContentType: "application/json",
+            CacheControl: "no-cache",
+            Expires: new Date()
+        },
+        function(err,data) {
+            console.log(JSON.stringify(err)+" "+JSON.stringify(data));
+        });
 }
 
 function toUTF8Array(str) {
