@@ -20,6 +20,7 @@
             getDictionary: getDictionary,
             generate: generate,
             saveSeats: saveSeats,
+            saveCurrentSeats: saveCurrentSeats,
             getGenerateStatus: getGenerateStatus
         }
 
@@ -35,6 +36,10 @@
 
         function saveSeats () {
             return $http.get('/api/saveseats')
+        }
+
+        function saveCurrentSeats() {
+            return $http.get('/api/savecurrentseats')
         }
 
         function getCorpses () {
@@ -75,6 +80,7 @@
         vm.cleanDataLoaded = false;
 
         vm.saveSeats = saveSeats;
+        vm.saveCurrentSeats = saveCurrentSeats;
         vm.generate = generate;
 
         vm.changeCorps = changeCorps;
@@ -193,6 +199,16 @@
             api
                 .getPupils(vm.currentCorps, vm.currentPlace)
                 .then(onPupilsGet);
+        }
+
+        function saveCurrentSeats() {
+            api
+                .saveCurrentSeats()
+                .then(onCurrentSeatsSaved);
+        }
+
+        function onCurrentSeatsSaved() {
+
         }
 
         function onCorpsesGet(res) {

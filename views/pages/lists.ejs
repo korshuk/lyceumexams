@@ -1,0 +1,93 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="manifest" href="site.webmanifest">
+        <link rel="apple-touch-icon" href="icon.png">
+      
+        <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link href="open-iconic/font/css/open-iconic-bootstrap.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/main.css">
+
+        <style>
+                .lvl-over {
+                    box-shadow: inset 0px 0px 16px 0px rgba(50, 50, 50, 1);
+                }
+            
+                .lvl-target {
+                  background-color: #ddd; 
+                  opacity: .5;
+                }
+            
+                [draggable] {
+                  cursor: move;
+                }
+              </style>
+    </head>
+    <body>
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                    <a class="navbar-brand" href="#">Navbar</a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                      <span class="navbar-toggler-icon"></span>
+                    </button>
+                  
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                      <ul class="navbar-nav mr-auto">
+                        <li class="nav-item active">
+                          <a class="nav-link" href="#">Главная <span class="sr-only">(current)</span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/lists.html">Списки</a>
+                          </li>
+                        <li class="nav-item">
+                          <a class="nav-link" href="/admin/cleandata.html">Загрузка начальных данных</a>
+                        </li>
+                      </ul>
+                    </div>
+                  </nav>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                        <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                        <% corps.forEach(function(corp) { %>
+                                            <tr>
+                                                <td><%= corp.name %></td>
+                                                <td>
+                                                        <a href="<%= '/api/corpses/print/' + corp.alias + '.html' %>" target="_blank">Печать</a>
+                                                </td>
+                                            </tr>
+                                            <% corp.places.forEach(function(place) { %>
+                                                <tr class="table-dark">
+                                                        <th colspan="2" class="text-center"><%= place.code %></th>
+                                                        <th><%= place.count %></th>
+                                                        <th><%= place.max %></th>
+                                                </tr>
+                                                <% place.audience.forEach(function(audience) { %>
+                                                    <tr>
+                                                            <td></td>
+                                                            <td><%= audience.name %></td>
+                                                            <td><%= audience.count %></td>
+                                                            <td><%= audience.max %></td>
+                                                            
+                                                    </tr>
+                                                    
+                                                <% }); %>
+                                            <% }); %>
+                                        <% }); %>
+                                </tbody>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

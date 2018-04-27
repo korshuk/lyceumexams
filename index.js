@@ -45,7 +45,9 @@ let db = {
     pupils: [],
     corpses: [],
     pupilsG: [],
-    corpsesG: []
+    corpsesG: [],
+    pupilsS: [],
+    corpsesS: []
 };
 
 let generateStatus = false;
@@ -70,7 +72,6 @@ function loadCleanData() {
     
     function onResponce(err, res) {
             if (err === null) {
-                console.log('1')
                 fileData = res.Body;
                 s3.getObject(s3DBDataParams, onDBResponce);
             } else {
@@ -79,8 +80,6 @@ function loadCleanData() {
     }
 
     function onDBResponce (err, res) {
-        console.log(arguments)
-        console.log('2')
         if (err === null) {
             fileData = res.Body;
         } else {
@@ -92,7 +91,6 @@ function loadCleanData() {
 
 function setCleanData(data) {
     var json = JSON.parse(data.toString());
-    console.log('3', json)
     readDbFromDisk(json)
 }
 
@@ -203,6 +201,7 @@ express()
     .get('/api/dictionary', getDictionary)
     .get('/api/generate', generate)
     .get('/api/saveseats', saveseats)
+    .get('/api/savecurrentseats', saveCurrentSeats)
     .get('/api/saved-seats.json', returnSavedFile)
     .get('/api/generateStatus', function (req, res) {
         sendResp(res, generateStatus)
@@ -233,6 +232,13 @@ express()
     })
     .get('/api/places', function (req, res) {
         sendResp(res, db.places);
+    })
+    .get('/admin/lists.html', function (req, res) {
+        console.log(db.corpsesS)
+        res.render('pages/lists', {
+            corps: db.corpsesS,
+            dictionary: generateDictionary()
+        })
     })
     .get('/', function (req, res) {
         res.render('pages/index')
@@ -306,9 +312,16 @@ function generateDictionary() {
     return data;
 }
 
+function saveCurrentSeats(req, res) {
+    db.pupilsS = JSON.parse(JSON.stringify(db.pupilsG));
+    db.corpsesS = JSON.parse(JSON.stringify(db.corpsesG));
+    sendResp(res, db.pupilsS)
+}
+
 function saveseats(req, res) {
     db.pupilsS = JSON.parse(JSON.stringify(db.pupilsG))
     db.corpsesS = JSON.parse(JSON.stringify(db.corpsesG))
+    updateDBFile();
     sendResp(res, db.pupilsS)
 }
 
@@ -672,6 +685,8 @@ function readDbFromDisk(obj) {
         db.corpses = createCorpses(obj.places || []);
         db.pupilsG=  obj.pupilsG || [];
         db.corpsesG= obj.corpsesG || createCorpses(obj.places || []);
+        db.pupilsS=  obj.pupilsS || [];
+        db.corpsesS= obj.corpsesS || [];
 
         ClenDataFlag = true;
        
@@ -680,7 +695,7 @@ function readDbFromDisk(obj) {
 }
 
 function updateDBFile() {
-    console.log(db.corpsesG[0])
+    console.log(db.corpsesS)
     s3.putObject(
         {
             Bucket: S3_BUCKET_NAME,
