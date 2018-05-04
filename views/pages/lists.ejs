@@ -40,7 +40,7 @@
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                       <ul class="navbar-nav mr-auto">
                         <li class="nav-item active">
-                          <a class="nav-link" href="#">Главная <span class="sr-only">(current)</span></a>
+                          <a class="nav-link" href="/admin/generate.html">Главная <span class="sr-only">(current)</span></a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/admin/lists.html">Списки</a>
@@ -54,38 +54,42 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
-                        <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                        <% corps.forEach(function(corp) { %>
+                        <% corps.forEach(function(corp) { %>
+                            <table class="table table-striped table-bordered">
+                                    <thead>
                                             <tr>
-                                                <td><%= corp.name %></td>
-                                                <td>
-                                                        <a href="<%= '/api/corpses/print/' + corp.alias + '.html' %>" target="_blank">Печать</a>
-                                                </td>
-                                            </tr>
+                                                    <th colspan="3" class="text-center">
+                                                        <b><%= corp.name %></b>
+                                                    </th>
+                                                    <th class="text-right">
+                                                            <a href="<%= '/api/corpses/print/' + corp.alias + '.html' %>" target="_blank">Печать</a>
+                                                    </th>
+                                                </tr>
+                                    </thead>
+                                    <tbody>
+                                            
                                             <% corp.places.forEach(function(place) { %>
                                                 <tr class="table-dark">
-                                                        <th colspan="2" class="text-center"><%= place.code %></th>
+                                                    <th style="width: 30%"></th>
+                                                        <th><%= place.code %></th>
                                                         <th><%= place.count %></th>
-                                                        <th><%= place.max %></th>
+                                                        <th><%= place.max %> - max</th>
                                                 </tr>
                                                 <% place.audience.forEach(function(audience) { %>
-                                                    <tr>
+                                                    <tr class="<%= audience.count > audience.max ? 'table-danger' : ''%>">
                                                             <td></td>
-                                                            <td><%= audience.name %></td>
+                                                            <td><%= audience.name %><%= audience.bel === true ? ' (бел)' : ''%></td>
                                                             <td><%= audience.count %></td>
                                                             <td><%= audience.max %></td>
                                                             
                                                     </tr>
                                                     
                                                 <% }); %>
-                                            <% }); %>
-                                        <% }); %>
+                                            <% }); %>     
                                 </tbody>
+                            </table>
+                            <br>
+                        <% }); %>        
                 </div>
             </div>
         </div>

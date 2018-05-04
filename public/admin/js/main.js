@@ -105,14 +105,8 @@
         }
 
         function saveSeats() {
-            api
-                .saveSeats()
-                .then(onSuccess);
-
-            function  onSuccess() {
-                var win = window.open('/api/saved-seats.json', '_blank');
-                win.focus();
-            }
+            var win = window.open('/api/saved-seats.json', '_blank');
+            win.focus();
         }
 
         function dropped(dragEl, dropEl) {

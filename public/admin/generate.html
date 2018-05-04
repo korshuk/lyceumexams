@@ -66,34 +66,26 @@
             </div>
             <div class="row">
                 <div class="col-md-6">
-                        <form>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                            <button type="button" 
-                                                    ng-click="vm.generated = !vm.generated"
-                                                    class="btn"
-                                                    ng-class="vm.generated ? 'btn-info' : 'btn-outline-info'">
-                                                {{vm.generated ? 'Редактировать' : 'Списки'}}
-                                            </button>  
-                                    </div>
-                                </div>
-                        </form>  
+                    
                 </div>
                 <div class="col-md-6 text-right">
-                    <form ng-if="!vm.generated">
+                    <form>
                             <div class="form-row justify-content-sm-end">
                                 <div class="form-group">
                                         <button type="button" class="btn btn-primary" ng-click="vm.generate()">Генерировать</button>
-                                        &nbsp; &nbsp;
-                                        <a href="/admin/index.html" class="btn btn-outline-primary">Отмена</a>
-                                        <button type="button" class="btn btn-success" ng-click="vm.saveSeats()">Сохранить файл</button>
+                                        &nbsp; 
+
                                         <button type="button" class="btn btn-success" ng-click="vm.saveCurrentSeats()">Назначить текущую рассадку</button>
+                                        &nbsp;
+
+                                        <button type="button" class="btn btn-success" ng-click="vm.saveSeats()">Скачать файл</button>
+                                        
                                 </div>
                             </div>
                     </form>        
                 </div>
             </div>
-            <div class="row" ng-if="!vm.generated">
+            <div class="row">
                 <div class="col-md-12">
                     <form>
                         <div class="form-row">
@@ -134,7 +126,7 @@
                     </form>
                 </div>
             </div>
-            <div class="row" ng-if="!vm.generated">
+            <div class="row">
                 <div class="col-md-8">
                         <table class="table table-hover">
                                 <thead>
@@ -214,31 +206,6 @@
                         </tr>
                     </tbody>
                     </table>
-                </div>
-            </div>
-
-            <div class="row" ng-if="vm.generated">
-                <div class="col-md-3"
-                     ng-repeat="corps in vm.corpses track by corps.alias">
-                     <div class="card mb-5">
-                        <div class="card-body">
-                            <h5 class="card-title">{{corps.name}}</h5>
-                        </div>        
-                        <ul class="list-group list-group-flush">
-                            <a  href="#" 
-                                class="list-group-item list-group-item-action"
-                                ng-repeat-start="place in corps.places track by place._id">
-                                <strong>{{place.code}} - {{place.count}} / {{place.max}}</strong>
-                            </a>    
-                            <a href="#"
-                                class="list-group-item list-group-item-action"
-                                ng-repeat="audience in place.audience track by audience._id">
-                                {{audience.name}} - {{audience.count}} / {{audience.max}}
-                            </a>
-                           <span ng-repeat-end></span>
-                        </ul>
-                        <a ng-href="{{ '/api/corpses/print/' + corps.alias + '.html'}}" target="_blank" class="btn btn-primary">Печать</a>
-                    </div>
                 </div>
             </div>
         </div>
