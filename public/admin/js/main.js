@@ -230,7 +230,7 @@
             }
 
             if (flag && vm.searchQuery !== '') {
-                flag = pupil.firstName.indexOf(vm.searchQuery) > -1;
+                flag = pupil.firstName.toLowerCase().indexOf(vm.searchQuery.toLowerCase()) > -1;
             }
 
             return flag
