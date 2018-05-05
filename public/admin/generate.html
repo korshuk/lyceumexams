@@ -128,6 +128,7 @@
                         <table class="table table-hover">
                                 <thead>
                                   <tr>
+                                      <th>#</th>
                                     <th scope="col" ng-click="vm.pupilOrder = vm.pupilOrder === 'firstName' ? '-firstName' : 'firstName'">
                                         ФИО
                                         <span ng-if="vm.pupilOrder === 'firstName'" class="oi oi-arrow-top"></span>
@@ -155,6 +156,7 @@
                                   data-pupil="{{pupil._id}}"
                                   data-bel="{{pupil.needBel === true}}"
                                   x-lvl-draggable='true' >
+                                  <td>{{$index + 1}}</td>
                                     <td>{{pupil.firstName}} {{pupil.lastName}} {{pupil.parentName}}</td>
                                     <td>{{vm.dictionary.audiences[pupil.audience]}}</td>
                                     <td>{{vm.dictionary.profiles[pupil.profile]}}</td>
