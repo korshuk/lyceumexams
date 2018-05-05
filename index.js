@@ -7,27 +7,6 @@ const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
 
-const request = require('./request/request')
-
-const requestSavedOptions = {
-    host: 'lyceum.by',
-    port: 80,
-    path: '/files/saved-seats.json',
-    method: 'GET',
-    headers: {
-        'Content-Type': 'application/json'
-    }
-}
-const requestDBOptions = {
-    host: 'lyceum.by',
-    port: 80,
-    path: '/files/list-export.json',
-    method: 'GET',
-    headers: {
-        'Content-Type': 'application/json'
-    }
-};
-
 const corpsesRouter = express.Router(); 
 const uploadRouter = express.Router(); 
 
@@ -94,10 +73,46 @@ function setCleanData(data) {
     readDbFromDisk(json)
 }
 
+pupilsRouter.route('/')
+    .get(function (req, res) {
+        let responsePupils = getFilteredPupils(req, 'generated');
+        sendResp(res, responsePupils);
+    }) 
+pupilsRouter.route('/saved')
+    .get(function (req, res) {
+        let responsePupils = getFilteredPupils(req, 'saved');
+        sendResp(res, responsePupils);
+    })
+pupilsRouter.route('/search/:type/')
+    .get(function (req, res) {
+        const type = req.params.type;
+        const search = req.query.search;
+        let data = [];
+        
+        let pupilsArray = getPupilArrayByType(type);
+
+        if (search.length > 0) {
+            data = pupilsArray
+                        .filter(function(pupil){
+                            return pupil.firstName.indexOf(search) > -1;
+                        })
+                        /*.map(function(pupil){
+                            pupil.profile = 'df';
+                            return pupil;     
+                        });*/
+        }
+        sendResp(res, data);
+    });       
+
+
 corpsesRouter.route('/')
     .get(function (req, res) {
         sendResp(res, db.corpsesG);
-    })
+    });
+corpsesRouter.route('/saved')
+    .get(function (req, res) {
+        sendResp(res, db.corpsesS);
+    });       
 corpsesRouter.route('/:id')
     .get(function (req, res) {
         const id = req.params.id;
@@ -112,17 +127,31 @@ corpsesRouter.route('/:id')
         }
         sendResp(res, {error: 'nothing found'});
     });
+corpsesRouter.route('/saved/:id')
+    .get(function (req, res) {
+        const id = req.params.id;
+        const length = db.corpsesS.length;
+        let i = 0;
+
+        for (i; i < db.corpsesS.length; i++) {
+            if (db.corpsesS[i].alias === id) {
+                sendResp(res, db.corpsesS[i])
+                return;
+            }
+        }
+        sendResp(res, {error: 'nothing found'});
+    });    
 
 corpsesRouter.route('/print/:id.html')
     .get(function(req, res){
         const id = req.params.id;
-        const length = db.corpsesG.length;
+        const length = db.corpsesS.length;
         let i = 0;
 
-        for (i; i < db.corpsesG.length; i++) {
-            if (db.corpsesG[i].alias === id) {
+        for (i; i < db.corpsesS.length; i++) {
+            if (db.corpsesS[i].alias === id) {
 
-                let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
+                let responsePupils = JSON.parse(JSON.stringify(db.pupilsS));
 
                 responsePupils = responsePupils
                     .filter(function(pupil){
@@ -140,7 +169,7 @@ corpsesRouter.route('/print/:id.html')
 
                 res.render('pages/corpsPrint', {
                     pupils: responsePupils,
-                    corps: db.corpsesG[i],
+                    corps: db.corpsesS[i],
                     dictionary: generateDictionary()
                 })
                 return;
@@ -175,6 +204,7 @@ express()
     .set('view engine', 'ejs')
     //.post('/upload', onFileUpload)
     .use('/api/corpses', corpsesRouter)
+    .use('/api/pupils', pupilsRouter)
     .use('/upload', uploadRouter)
     .post('/api/changeaudience', changeAudience)
     .get('/api/dictionary', getDictionary)
@@ -185,27 +215,6 @@ express()
     .get('/api/generateStatus', function (req, res) {
         sendResp(res, generateStatus)
     })
-    .get('/api/search', function (req, res) {
-        const search = req.query.search;
-        let data = [];
-        
-        if (search.length > 0) {
-            data = db.pupilsG
-                        .filter(function(pupil){
-                            return pupil.firstName.indexOf(search) > -1;
-                        })
-                        .map(function(pupil){
-                            pupil.profile = 'df';
-                            return pupil;     
-                        });
-        }
-        sendResp(res, data);
-    })
-    .get('/api/pupils', function (req, res) {        
-        let responsePupils = getFilteredPupils(req);
-        
-        sendResp(res, responsePupils);
-    })
     .get('/api/profiles', function (req, res) {
         sendResp(res, db.profiles);
     })
@@ -213,7 +222,6 @@ express()
         sendResp(res, db.places);
     })
     .get('/admin/lists.html', function (req, res) {
-        console.log(db.corpsesS)
         res.render('pages/lists', {
             corps: db.corpsesS,
             dictionary: generateDictionary()
@@ -226,13 +234,24 @@ express()
         console.log(`Listening on ${ PORT }`)
     });
 
+function getPupilArrayByType(type) {
+    if (type === 'generated') {
+        return db.pupilsG;
+    }
+    if (type === 'saved') {
+        return db.pupilsS
+    }
 
-function getFilteredPupils(req) {
+}
+
+function getFilteredPupils(req, type) {
     const query = req.query;
     const corpsQuery = query.corps;
     const placeQuery = query.place;
 
-    let responsePupils = JSON.parse(JSON.stringify(db.pupilsG));
+    let pupilsArray = getPupilArrayByType(type);
+
+    let responsePupils = JSON.parse(JSON.stringify(pupilsArray));
 
     if (corpsQuery && corpsQuery.length) {
         responsePupils = responsePupils.filter(function(pupil){
