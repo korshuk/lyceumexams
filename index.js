@@ -9,6 +9,7 @@ const jsonfile = require('jsonfile');
 
 const corpsesRouter = express.Router(); 
 const uploadRouter = express.Router(); 
+const pupilsRouter = express.Router(); 
 
 const s3 = new aws.S3();
 aws.config.region = 'eu-west-2';
