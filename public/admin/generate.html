@@ -65,30 +65,35 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-12 text-right">
-                    <form>
-                            <div class="form-row justify-content-sm-end">
+                <div class="col-md-7">
+                        <div class="form-row">
                                 <div class="form-group">
-                                        <button type="button" class="btn btn-primary" ng-click="vm.generate()">Генерировать</button>
+                                        <button type="button" class="btn btn-primary xc" ng-click="vm.generate()">Генерировать</button>
                                         &nbsp; 
 
-                                        <button type="button" class="btn btn-success" ng-click="vm.saveCurrentSeats()">Назначить текущую рассадку</button>
-                                        &nbsp;
-
-                                        <button type="button" class="btn btn-success" ng-click="vm.saveSeats()">Скачать файл</button>
+                                        <button type="button" class="btn btn-success" ng-click="vm.saveCurrentSeats()">Сохранить изменения</button>
+                                </div>
+                            </div>
+                </div>
+                <div class="col-md-5 text-right">
+                    <form>
+                            <div class="form-row justify-content-sm-end">
+                                
+                                <div class="form-group">
+                                        <button type="button" class="btn btn-link" ng-click="vm.saveSeats()">Скачать файл</button>
                                         
                                 </div>
                             </div>
                     </form>        
                 </div>
             </div>
-            <div class="row">
+            <div class="row" style="position: sticky; top: 0; background: #fff; z-index: 2;">
                 <div class="col-md-12">
                     <form>
                         <div class="form-row">
                             <div class="form-group col-md-3">
                                     <label for="searchInp">Поиск</label>
-                                    <input type="text" class="form-control" id="searchInp">
+                                    <input type="text" class="form-control" id="searchInp" ng-model="vm.searchQuery">
                             </div>
                             <div class="form-group col-md-3">
                                 <label for="corpsSlct">Корпус</label>
@@ -174,7 +179,7 @@
                               </table>
                 </div>
                 <div class="col-md-4">
-                    <table class="table table-hover" style="position: sticky;top: 0;">
+                    <table class="table table-hover" style="position: sticky;top: 90px;">
                     <thead>
                         <tr>
                         <th scope="col">#</th>

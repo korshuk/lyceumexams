@@ -88,6 +88,7 @@
         vm.getPupils = getPupils;
 
         vm.dropped = dropped;
+        vm.searchQuery = '';
         vm.pupilFilter = pupilFilter;
 
         api.getDictionary().then(onDictionary);
@@ -225,8 +226,11 @@
         function pupilFilter(pupil) {
             var flag = true;
             if (vm.currentAudience) {
-                
                 flag =  pupil.audience === vm.currentAudience._id
+            }
+
+            if (flag && vm.searchQuery !== '') {
+                flag = pupil.firstName.indexOf(vm.searchQuery) > -1;
             }
 
             return flag
