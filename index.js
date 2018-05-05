@@ -595,7 +595,7 @@ function changeAudience(req, res) {
     
     response = {
         corpses: db.corpsesG,
-        pupils: getFilteredPupils(req)
+        pupils: getFilteredPupils(req, 'generated')
     };
 
     updateDBFile();
