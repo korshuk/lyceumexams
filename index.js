@@ -7,23 +7,6 @@ const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
 
-const firebase = require('firebase-admin');
-
-firebase.initializeApp({
-    credential: firebase.credential.cert({
-      projectId: process.env.FB_PROJECT_ID,
-      clientEmail: process.env.FB_CLIENT_EMAIL,
-      privateKey: process.env.FB_PRIVATE_KEY.replace(/\\n/g, '\n')
-    }),
-    databaseURL: process.env.FB_DB_URL
-});
-
-const FB_DB = firebase.firestore();
-
-const DB_Places = FB_DB.collection('places');
-const DB_Profiles = FB_DB.collection('profiles');
-const DB_Pupils = FB_DB.collection('pupils');
-
 const request = require('./request/request')
 
 const requestSavedOptions = {
@@ -73,16 +56,6 @@ let ClenDataFlag = false;
 loadCleanData();
 
 function loadCleanData() {
-    DB_Places
-        .get()
-        .then(function (snapshot) {
-            console.log(snapshot.docs.length)
-            ClenDataFlag = snapshot.docs.length !== 0;
-          })
-          .catch((err) => {
-            console.log('Error getting documents', err);
-          });
-    
     const s3CleanDataParams = {
         Bucket: S3_BUCKET_NAME,
         Key: CLEAN_FILE_NAME
@@ -102,7 +75,7 @@ function loadCleanData() {
                 fileData = res.Body;
                 s3.getObject(s3DBDataParams, onDBResponce);
             } else {
-           //     ClenDataFlag = false
+                ClenDataFlag = false
             }
     }
 
@@ -120,27 +93,6 @@ function setCleanData(data) {
     var json = JSON.parse(data.toString());
     readDbFromDisk(json)
 }
-
-
-/*request.getJSON(requestSavedOptions, function(statusCode, result) {
-    generateStatus = true;
-    console.log('#ok')
-
-    db.pupilsG = result.pupils;
-    db.corpsesG = result.corpses;
-    
-    request.getJSON(requestDBOptions, function(statusCode, result) {
-        readDbFromDisk(result);
-    });
- }, function(error) {
-    console.log('#error')
-    generateStatus = false;
-    request.getJSON(requestDBOptions, function(statusCode, result) {
-        readDbFromDisk(result);
-    });
- });*/
-
-
 
 corpsesRouter.route('/')
     .get(function (req, res) {
@@ -205,30 +157,9 @@ uploadRouter.route('/cleanData')
         }
     
         var uploadedFile = req.files.cleanDataFile;
-        var data = JSON.parse(uploadedFile.data);
-        var places = data.places;
-        var profiles = data.profiles;
-        var pupils = data.pupils;
-
-        var batch = FB_DB.batch();
-        var obj;
-
-        
-
-        for (var i = 0; i < places.length; i++) {
-            obj = DB_Places.doc(places[i]._id)
-            batch.set(obj, places[i]);
-        }
-        for (var i = 0; i < profiles.length; i++) {
-            DB_Profiles.doc(profiles[i]._id).set(profiles[i])
-        }
-        for (var i = 0; i < pupils.length; i++) {
-            DB_Pupils.doc(pupils[i]._id).set(pupils[i])
-        }
-       // uploadCleanDataFileToS3(uploadedFile.data, onFileUploaded);                
-       batch.commit().then(function () {
-        console.log('arguments', arguments)
-      });
+    
+        uploadCleanDataFileToS3(uploadedFile.data, onFileUploaded);                
+          
         function onFileUploaded () {
             setCleanData(uploadedFile.data)
             res.redirect('/admin/generate.html');
@@ -282,6 +213,7 @@ express()
         sendResp(res, db.places);
     })
     .get('/admin/lists.html', function (req, res) {
+        console.log(db.corpsesS)
         res.render('pages/lists', {
             corps: db.corpsesS,
             dictionary: generateDictionary()
@@ -517,6 +449,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
     }
+    console.log('!!!!', belPupilsLength)
     for (i = 0; i < audiencesLength; i++) {
         picksArray = generatePicksForAudience(audiences[i]);
         audiences[i].count = picksArray.length;
@@ -528,6 +461,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
     corps.max = corps.max + place.max;
 
     function generatePicksForAudience(audience) {
+        console.log('generatePicksForAudience', audience.bel === true, numbersArr.length)
         let audienceMax = audience.max;
         let picksArray = [];
         let randomIndex;
@@ -542,6 +476,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
             if (belPupilsLength <= audienceMax) {
                 audienceMax = belPupilsLength
             }
+          //  console.log('@@', belPupilsLength, audienceMax)
         }
 
         
@@ -549,7 +484,9 @@ function generatePupilPicks(profiledPupils, place, corps) {
         while (picksArray.length < audienceMax){
             randomIndex = Math.floor(Math.random() * numbersArr.length);
             belPupilFlag = profiledPupils[numbersArr[randomIndex]].needBel === true;
-           
+            if (belPupilFlag) {
+                console.log('belPupilFlag', belPupilFlag, randomIndex, numbersArr[randomIndex])
+            }
             if (belAudienceFlag === false) {
                 if (belPupilFlag === false) {
                     picksArray.push(numbersArr[randomIndex]);
@@ -719,7 +656,7 @@ function uploadCleanDataFileToS3(data, next) {
 }
 
 function readDbFromDisk(obj) {
-    console.log('readDbFromDisk')
+    console.log(obj.corpsesG)
     if (obj) {
         db.places = obj.places || [];
         db.profiles = obj.profiles || [];
@@ -732,18 +669,12 @@ function readDbFromDisk(obj) {
 
         ClenDataFlag = true;
        
-        for (var i = 0; i < obj.places.length; i++) {
-        //    DB_Places.doc(obj.places[i]._id).set(obj.places[i]._id)
-       //     DB_Places.push(db.places[i]);
-        }
-        
-
         updateDBFile();
     }
 }
 
 function updateDBFile() {
-    console.log('updateDBFile')
+    console.log(db.corpsesS)
     s3.putObject(
         {
             Bucket: S3_BUCKET_NAME,

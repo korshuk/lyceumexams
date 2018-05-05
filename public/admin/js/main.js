@@ -77,7 +77,7 @@
         vm.currentCorps = {};
         vm.currentPlace = null;
         vm.currentAudience = null;
-        vm.cleanDataLoaded = false;
+        vm.cleanDataLoaded = true;
 
         vm.saveSeats = saveSeats;
         vm.saveCurrentSeats = saveCurrentSeats;
@@ -234,4 +234,3 @@
     }    
         
 })();
-
