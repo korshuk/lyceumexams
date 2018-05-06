@@ -80,6 +80,12 @@ pupilsRouter.route('/')
         sendResp(res, responsePupils);
     }) 
 pupilsRouter.route('/:id')
+    .options(function (req, res) {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+        res.send(200);
+    })
     .post(function (req, res) {
         let responsePupils = getFilteredPupils(req, 'generated');
         sendResp(res, responsePupils);
@@ -277,6 +283,7 @@ function getFilteredPupils(req, type) {
 
 function sendResp(res, data) {
     res.header("Access-Control-Allow-Origin", "*");
+    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     res.json(data);
 }
