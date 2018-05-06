@@ -87,8 +87,19 @@ pupilsRouter.route('/:id')
         res.send(200);
     })
     .post(function (req, res) {
-        let responsePupils = getFilteredPupils(req, 'generated');
-        sendResp(res, responsePupils);
+        const id = req.params.id;
+        const length = db.pupilsS.length;
+        let i = 0;
+
+        for (i; i < length; i++) {
+            if (db.pupilsS[i]._id === id) {
+                db.pupilsS[i].examStatus = req.body.examStatus;
+                updateDBFile();
+                sendResp(res, 'ok')
+                return;
+            }
+        }
+        sendResp(res, {error: 'nothing found'});
 }) 
         
 pupilsRouter.route('/saved')
