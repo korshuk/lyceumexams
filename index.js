@@ -95,12 +95,7 @@ pupilsRouter.route('/:id')
             if (db.pupilsS[i]._id === id) {
                 db.pupilsS[i].examStatus = req.body.examStatus;
                 updateDBFile();
-                sendResp(res, {
-                   p: db.pupilsS[i],
-                   b: req.body,
-                   i: i,
-                   id: req.params
-                })
+                sendResp(res, 'ok')
                 return;
             }
         }
