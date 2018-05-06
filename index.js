@@ -95,7 +95,7 @@ pupilsRouter.route('/:id')
             if (db.pupilsS[i]._id === id) {
                 db.pupilsS[i].examStatus = req.body.examStatus;
                 updateDBFile();
-                sendResp(res, 'ok')
+                sendResp(res, db.pupilsS[i])
                 return;
             }
         }
@@ -718,7 +718,6 @@ function readDbFromDisk(obj) {
 }
 
 function updateDBFile() {
-    console.log(db.corpsesS)
     s3.putObject(
         {
             Bucket: S3_BUCKET_NAME,
