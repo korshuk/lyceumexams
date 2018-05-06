@@ -79,6 +79,12 @@ pupilsRouter.route('/')
         let responsePupils = getFilteredPupils(req, 'generated');
         sendResp(res, responsePupils);
     }) 
+pupilsRouter.route('/:id')
+    .post(function (req, res) {
+        let responsePupils = getFilteredPupils(req, 'generated');
+        sendResp(res, responsePupils);
+}) 
+        
 pupilsRouter.route('/saved')
     .get(function (req, res) {
         let responsePupils = getFilteredPupils(req, 'saved');
