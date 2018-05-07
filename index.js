@@ -118,7 +118,7 @@ pupilsRouter.route('/search/:type/')
         if (search.length > 0) {
             data = pupilsArray
                         .filter(function(pupil){
-                            return pupil.firstName.indexOf(search) > -1;
+                            return pupil.firstName.toLowerCase().indexOf(search.toLowerCase()) > -1;
                         })
                         /*.map(function(pupil){
                             pupil.profile = 'df';
