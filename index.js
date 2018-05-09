@@ -70,7 +70,6 @@ function loadCleanData() {
 }
 
 function setCleanData(data) {
-    console.log('timestemp from file', data.toString().timestemp)
     var json = JSON.parse(data.toString());
     readDbFromDisk(json)
 }
@@ -265,6 +264,9 @@ express()
         res.render('pages/index', {
             page: 'index'
         })
+    })
+    .get('/', function (req, res) {
+        res.redirect('/app');
     })
     .listen(PORT, function() {
         console.log(`Listening on ${ PORT }`)
