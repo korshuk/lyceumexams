@@ -65,7 +65,7 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-7">
+                <div class="col-md-6">
                         <div class="form-row">
                                 <div class="form-group">
                                         <button type="button" class="btn btn-primary xc" ng-click="vm.generate()">Генерировать</button>
@@ -75,13 +75,17 @@
                                 </div>
                             </div>
                 </div>
-                <div class="col-md-5 text-right">
-                    <form>
-                            <div class="form-row justify-content-sm-end">
+                <div class="col-md-6 text-right">
+                    <form class="form-inline justify-content-sm-end">
+                            <div class="form-row">
                                 
                                 <div class="form-group">
-                                        <button type="button" class="btn btn-link" ng-click="vm.saveSeats()">Скачать файл</button>
-                                        
+                                    <label><b>Загрузка рассадки: </b></label>
+                                    <label ng-if="vm.loading"><b>идет загрузка...</b></label>
+                                    &nbsp; 
+                                        <button type="button" class="btn btn-primary" ng-click="vm.loadSeats(1)">1 экзамен</button>
+                                        &nbsp; 
+                                        <button type="button" class="btn btn-primary" ng-click="vm.loadSeats(2)">2 экзамен</button>
                                 </div>
                             </div>
                     </form>        

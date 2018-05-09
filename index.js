@@ -469,9 +469,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
         return pupil.needBel === true
     }).length;
     let numbersArr = [];
-    let audiences = place.audience.sort(function(a, b){
-        return a.max - b.max;
-    });
+    let audiences = place.audience.sort(audienceSort); 
     
     let i = 0, picksArray;
     const audiencesLength = audiences.length;
@@ -493,7 +491,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
     }
-    console.log('!!!!', belPupilsLength)
+    console.log('!!!!', belPupilsLength, audiences)
     for (i = 0; i < audiencesLength; i++) {
         picksArray = generatePicksForAudience(audiences[i]);
         audiences[i].count = picksArray.length;
@@ -505,7 +503,7 @@ function generatePupilPicks(profiledPupils, place, corps) {
     corps.max = corps.max + place.max;
 
     function generatePicksForAudience(audience) {
-        console.log('generatePicksForAudience', audience.bel === true, numbersArr.length)
+        console.log('generatePicksForAudience', audience.bel === true, numbersArr.length, audience.name)
         let audienceMax = audience.max;
         let picksArray = [];
         let randomIndex;
@@ -516,35 +514,24 @@ function generatePupilPicks(profiledPupils, place, corps) {
             audienceMax = numbersArr.length
         }
         if (belAudienceFlag) {
-            
             if (belPupilsLength <= audienceMax) {
                 audienceMax = belPupilsLength
             }
-          //  console.log('@@', belPupilsLength, audienceMax)
         }
 
         
-
+        console.log('@@@@@', audience.max, audienceMax, numbersArr.length, belPupilsLength)
         while (picksArray.length < audienceMax){
             randomIndex = Math.floor(Math.random() * numbersArr.length);
             belPupilFlag = profiledPupils[numbersArr[randomIndex]].needBel === true;
-            if (belPupilFlag) {
-                console.log('belPupilFlag', belPupilFlag, randomIndex, numbersArr[randomIndex])
-            }
-            if (belAudienceFlag === false) {
-                if (belPupilFlag === false) {
-                    picksArray.push(numbersArr[randomIndex]);
-                    numbersArr.splice(randomIndex, 1);
-                }
-            } else {
+            
+            if (belAudienceFlag === belPupilFlag) {
+                picksArray.push(numbersArr[randomIndex]);
+                numbersArr.splice(randomIndex, 1);
                 if (belPupilFlag === true) {
-                   picksArray.push(numbersArr[randomIndex]);
-                   numbersArr.splice(randomIndex, 1);
-                   belPupilsLength = belPupilsLength - 1;
-               }
+                    belPupilsLength = belPupilsLength - 1;
+                }
             }
-
-
         }
         return picksArray.filter(notEmptyPick);
     }
@@ -552,6 +539,16 @@ function generatePupilPicks(profiledPupils, place, corps) {
     function notEmptyPick(pick) {
         return pick >= 0;
     }
+}
+
+function audienceSort(a, b){
+    let value = a.max - b.max;
+
+    if (a.bel !== b.bel ) {
+        value = a.bel === true ? -1 : 1;
+    }
+
+    return value;
 }
 
 function createProfilesMap(profiles) {

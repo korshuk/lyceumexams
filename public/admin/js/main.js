@@ -15,11 +15,14 @@
     function apiFactory($http) {
         var service = {
             getCorpses: getCorpses,
+            getSavedCorpses: getSavedCorpses,
             getPupils: getPupils,
+            getSavedPupils: getSavedPupils,
             changeAudience: changeAudience,
             getDictionary: getDictionary,
             generate: generate,
             saveSeats: saveSeats,
+            savePupilSeats: savePupilSeats,
             saveCurrentSeats: saveCurrentSeats,
             getGenerateStatus: getGenerateStatus
         }
@@ -46,9 +49,19 @@
             return $http.get('/api/corpses')
         }
 
+        function getSavedCorpses () {
+            return $http.get('/api/corpses/saved')
+        }
+
         function getPupils(corps, place) {
             var placeId = place ? place._id : '';
             var url = `/api/pupils?corps=${corps.alias}&place=${placeId}`;
+
+            return $http.get(url);
+        }
+
+        function getSavedPupils(corps) {
+            var url = `/api/pupils/saved?corps=${corps.alias}`;
 
             return $http.get(url);
         }
@@ -66,6 +79,12 @@
                 audienceId: audienceId
             })
         }
+
+        function savePupilSeats(examNum, pupils) {
+            var url = `http://localhost:3000/admin/pupils/api/savepupilseats/${examNum}`;
+            
+            return $http.post(url, pupils) 
+        }
     }    
         
     function seedController(api) {
@@ -80,6 +99,7 @@
         vm.cleanDataLoaded = true;
 
         vm.saveSeats = saveSeats;
+        vm.loadSeats = loadSeats;
         vm.saveCurrentSeats = saveCurrentSeats;
         vm.generate = generate;
 
@@ -103,6 +123,55 @@
             function onSuccess() {
                 window.location = window.location;
             }    
+        }
+
+        function loadSeats(examNum) {
+            vm.loading = true;
+            api.getSavedCorpses()
+                .then(function (res) {
+                    if (res.data.length === 0) {
+                        alert('No saved data')
+                    } else {
+                        onSavedCorpsLoaded(res.data, examNum);
+                    }
+                })
+        }
+
+        function onSavedCorpsLoaded(corpses, examNum) {
+            var corpsesLength = corpses.length,
+                counter = 0,
+                i = 0;
+            for (i; i < corpsesLength; i++) {
+
+                api.getSavedPupils(corpses[i])
+                    .then(onPupilsGet)
+            }
+
+            function onPupilsGet(res) {
+                var pupils = res.data.map(function(p){
+                    return {
+                        audience: p.audience,
+                        _id: p._id,
+                        corps: p.corps,
+                        place: p.place
+                    }
+                });
+
+                api
+                    .savePupilSeats(examNum, pupils)
+                    .then(onPupilsSaved)
+            }
+
+            function onPupilsSaved(res) {
+                counter = counter + 1;
+                if (counter === corpsesLength) {
+                    vm.loading = false;
+                }
+                if (res.data !== 'ok') {
+                    console.log('Error!', res.data)
+                    alert('Error')
+                }
+            }
         }
 
         function saveSeats() {
