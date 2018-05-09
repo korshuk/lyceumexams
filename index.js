@@ -61,17 +61,21 @@ function loadCleanData() {
 
     function onDBResponce (err, res) {
         if (err === null) {
+            
             fileData = res.Body;
         } else {
 
         }
-        setCleanData(fileData)
+        setCleanData(fileData, function(){
+            appStart()
+        })
     }
 }
 
-function setCleanData(data) {
+function setCleanData(data, next) {
     var json = JSON.parse(data.toString());
-    readDbFromDisk(json)
+    console.log('get data', json)
+    readDbFromDisk(json, next)
 }
 
 pupilsRouter.route('/')
@@ -219,14 +223,14 @@ uploadRouter.route('/cleanData')
         }
     });
 
-express()
+function appStart() {
+    express()
     .use(bodyParser.json())
     .use(bodyParser.urlencoded({ extended: true }))
     .use(express.static(path.join(__dirname, 'public')))
     .use(fileUpload())
     .set('views', path.join(__dirname, 'views'))
     .set('view engine', 'ejs')
-    //.post('/upload', onFileUpload)
     .use('/api/corpses', corpsesRouter)
     .use('/api/pupils', pupilsRouter)
     .use('/upload', uploadRouter)
@@ -236,7 +240,6 @@ express()
     .get('/api/savecurrentseats', saveCurrentSeats)
     .get('/api/saved-seats.json', returnSavedFile)
     .get('/api/generateStatus', function (req, res) {
-        console.log(db.timestemp)
         sendResp(res, {
             generateStatus: generateStatus,
             timestemp: db.timestemp
@@ -271,6 +274,8 @@ express()
     .listen(PORT, function() {
         console.log(`Listening on ${ PORT }`)
     });
+
+}
 
 function getPupilArrayByType(type) {
     if (type === 'generated') {
@@ -712,7 +717,7 @@ function uploadCleanDataFileToS3(data, next) {
     }
 }
 
-function readDbFromDisk(obj) {
+function readDbFromDisk(obj, next) {
     if (obj) {
         db.places = obj.places || [];
         db.profiles = obj.profiles || [];
@@ -725,7 +730,7 @@ function readDbFromDisk(obj) {
         db.timestemp = obj.timestemp || '';
         ClenDataFlag = true;
        
-        updateDBFile();
+        updateDBFile(next);
     }
 }
 

@@ -82,7 +82,7 @@
         }
 
         function savePupilSeats(examNum, pupils) {
-            var url = `http://localhost:3000/admin/pupils/api/savepupilseats/${examNum}`;
+            var url = `http://lyceum.by/admin/pupils/api/savepupilseats/${examNum}`;
             
             return $http.post(url, pupils) 
         }
