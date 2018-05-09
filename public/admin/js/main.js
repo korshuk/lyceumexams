@@ -42,7 +42,8 @@
         }
 
         function saveCurrentSeats() {
-            return $http.get('/api/savecurrentseats')
+            var timestemp = Date.now();
+            return $http.get('/api/savecurrentseats?time=' + timestemp)
         }
 
         function getCorpses () {
@@ -97,6 +98,7 @@
         vm.currentPlace = null;
         vm.currentAudience = null;
         vm.cleanDataLoaded = true;
+        vm.seatsSaving = false;
 
         vm.saveSeats = saveSeats;
         vm.loadSeats = loadSeats;
@@ -266,13 +268,15 @@
         }
 
         function saveCurrentSeats() {
+            vm.seatsSaving = true;
             api
                 .saveCurrentSeats()
                 .then(onCurrentSeatsSaved);
         }
 
-        function onCurrentSeatsSaved() {
-
+        function onCurrentSeatsSaved(res) {
+            vm.seatsSaving = false;
+            vm.timestemp = timeConverter(res.data.timestemp)
         }
 
         function onCorpsesGet(res) {
@@ -289,7 +293,8 @@
         }
 
         function onGenerateStatusGet(res) {
-            vm.generated = res.data
+            vm.generated = res.data.generateStatus
+            vm.timestemp = timeConverter(res.data.timestemp)
         }
 
         function pupilFilter(pupil) {
@@ -303,6 +308,19 @@
             }
 
             return flag
+        }
+
+        function timeConverter(UNIX_timestamp){
+            var a = new Date(+UNIX_timestamp);
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var year = a.getFullYear();
+            var month = months[a.getMonth()];
+            var date = a.getDate();
+            var hour = a.getHours();
+            var min = a.getMinutes();
+            var sec = a.getSeconds();
+            var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+            return time;
         }
     }    
         

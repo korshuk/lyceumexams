@@ -1,5 +1,11 @@
 @media all {
     .page-break { display: none; }
+    .table.table-large { 
+        font-size: 1.5rem;
+    }
+    .table.table-large td, .table.table-large th  {
+        padding: .5rem;
+    }
     .table.table-small {
         width: 60%;
     }

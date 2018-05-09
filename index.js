@@ -70,6 +70,7 @@ function loadCleanData() {
 }
 
 function setCleanData(data) {
+    console.log('timestemp from file', data.toString().timestemp)
     var json = JSON.parse(data.toString());
     readDbFromDisk(json)
 }
@@ -233,11 +234,14 @@ express()
     .post('/api/changeaudience', changeAudience)
     .get('/api/dictionary', getDictionary)
     .get('/api/generate', generate)
-    .get('/api/saveseats', saveseats)
     .get('/api/savecurrentseats', saveCurrentSeats)
     .get('/api/saved-seats.json', returnSavedFile)
     .get('/api/generateStatus', function (req, res) {
-        sendResp(res, generateStatus)
+        console.log(db.timestemp)
+        sendResp(res, {
+            generateStatus: generateStatus,
+            timestemp: db.timestemp
+        });
     })
     .get('/api/profiles', function (req, res) {
         sendResp(res, db.profiles);
@@ -247,12 +251,20 @@ express()
     })
     .get('/admin/lists.html', function (req, res) {
         res.render('pages/lists', {
+            page: 'lists',
             corps: db.corpsesS,
             dictionary: generateDictionary()
         })
     })
-    .get('/', function (req, res) {
-        res.render('pages/index')
+    .get('/admin/cleandata.html', function (req, res) {
+        res.render('pages/cleandata', {
+            page: 'cleandata'
+        })
+    })
+    .get('/admin', function (req, res) {
+        res.render('pages/index', {
+            page: 'index'
+        })
     })
     .listen(PORT, function() {
         console.log(`Listening on ${ PORT }`)
@@ -336,15 +348,22 @@ function generateDictionary() {
 }
 
 function saveCurrentSeats(req, res) {
+    var timestemp = req.query.time;
+    db.timestemp = timestemp;
     db.pupilsS = JSON.parse(JSON.stringify(db.pupilsG));
     db.corpsesS = JSON.parse(JSON.stringify(db.corpsesG));
-    sendResp(res, db.pupilsS)
+    updateDBFile(function (err, data) {
+        sendResp(res, {
+            timestemp: db.timestemp
+        });
+    });
+
+    
 }
 
 function saveseats(req, res) {
     db.pupilsS = JSON.parse(JSON.stringify(db.pupilsG))
     db.corpsesS = JSON.parse(JSON.stringify(db.corpsesG))
-    updateDBFile();
     sendResp(res, db.pupilsS)
 }
 
@@ -487,11 +506,9 @@ function generatePupilPicks(profiledPupils, place, corps) {
         place.max = 0;
     }
     
-
     for (i; i < profiledPupilsLength; i++ ) { 
         numbersArr.push(i);
     }
-    console.log('!!!!', belPupilsLength, audiences)
     for (i = 0; i < audiencesLength; i++) {
         picksArray = generatePicksForAudience(audiences[i]);
         audiences[i].count = picksArray.length;
@@ -503,7 +520,6 @@ function generatePupilPicks(profiledPupils, place, corps) {
     corps.max = corps.max + place.max;
 
     function generatePicksForAudience(audience) {
-        console.log('generatePicksForAudience', audience.bel === true, numbersArr.length, audience.name)
         let audienceMax = audience.max;
         let picksArray = [];
         let randomIndex;
@@ -519,8 +535,6 @@ function generatePupilPicks(profiledPupils, place, corps) {
             }
         }
 
-        
-        console.log('@@@@@', audience.max, audienceMax, numbersArr.length, belPupilsLength)
         while (picksArray.length < audienceMax){
             randomIndex = Math.floor(Math.random() * numbersArr.length);
             belPupilFlag = profiledPupils[numbersArr[randomIndex]].needBel === true;
@@ -697,7 +711,6 @@ function uploadCleanDataFileToS3(data, next) {
 }
 
 function readDbFromDisk(obj) {
-    console.log(obj.corpsesG)
     if (obj) {
         db.places = obj.places || [];
         db.profiles = obj.profiles || [];
@@ -707,14 +720,14 @@ function readDbFromDisk(obj) {
         db.corpsesG= obj.corpsesG || createCorpses(obj.places || []);
         db.pupilsS=  obj.pupilsS || [];
         db.corpsesS= obj.corpsesS || [];
-
+        db.timestemp = obj.timestemp || '';
         ClenDataFlag = true;
        
         updateDBFile();
     }
 }
 
-function updateDBFile() {
+function updateDBFile(next) {
     s3.putObject(
         {
             Bucket: S3_BUCKET_NAME,
@@ -725,7 +738,10 @@ function updateDBFile() {
             Expires: new Date()
         },
         function(err,data) {
-            console.log(JSON.stringify(err)+" "+JSON.stringify(data));
+            console.log(JSON.stringify(err)+" loaded to file", next);
+            if (next) {
+                next(err, data);
+            }
         });
 }
 
