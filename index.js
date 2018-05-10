@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
+var https = require("https");
 
 const corpsesRouter = express.Router(); 
 const uploadRouter = express.Router(); 
@@ -34,6 +35,13 @@ let generateStatus = false;
 let ClenDataFlag = false;
 
 loadCleanData();
+
+setTimeout(ping, 100);
+
+function ping() {
+    https.get("https://lyceumexams.herokuapp.com/api/generateStatus");
+    setTimeout(ping, 600000);
+}
 
 function loadCleanData() {
     const s3CleanDataParams = {
