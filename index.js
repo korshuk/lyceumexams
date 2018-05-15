@@ -6,7 +6,8 @@ const PORT = process.env.PORT || 5000;
 const fileUpload = require('express-fileupload');
 const openDB = require('json-file-db');
 const jsonfile = require('jsonfile');
-var https = require("https");
+const https = require("https");
+const request = require("request");
 
 const corpsesRouter = express.Router(); 
 const uploadRouter = express.Router(); 
@@ -106,8 +107,22 @@ pupilsRouter.route('/:id')
         for (i; i < length; i++) {
             if (db.pupilsS[i]._id === id) {
                 db.pupilsS[i].examStatus = req.body.examStatus;
-                updateDBFile();
-                sendResp(res, 'ok')
+                
+                request.post({
+                //    url: 'http://lyceum.by/admin/pupils/api/examStatus/pupils/' + id,
+                        url: 'http://localhost:3000/admin/pupils/api/examStatus/' + id,
+                        form: req.body
+                    },
+                    function (error, response, body) {
+                        console.log("!!!!!!!!!!!!!!!!", error)
+                        if (!error && response.statusCode == 200) {
+                            updateDBFile();
+                            sendResp(res, 'ok')
+                        }
+                    }
+                );
+                
+                
                 return;
             }
         }
