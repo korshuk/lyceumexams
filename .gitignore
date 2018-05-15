@@ -12,7 +12,6 @@ logs
 
 npm-debug.log
 node_modules
-public/images/*
 public/files
 *.brackets.json
 nodeblog.sublime-workspace
