@@ -117,7 +117,12 @@ pupilsRouter.route('/:id')
                         console.log("!!!!!!!!!!!!!!!!", error)
                         if (!error && response.statusCode == 200) {
                             updateDBFile();
-                            sendResp(res, 'ok')
+                            error, response, body
+                            sendResp(res, {
+                                error: error,
+                                body: body
+                            })
+                           // sendResp(res, 'ok')
                         }
                     }
                 );
