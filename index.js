@@ -109,26 +109,15 @@ pupilsRouter.route('/:id')
                 db.pupilsS[i].examStatus = req.body.examStatus;
                 
                 request.post({
-                    url: 'http://lyceum.by/admin/pupils/api/examStatus/pupils/' + id,
+                        url: 'http://lyceum.by/admin/pupils/api/examStatus/' + id,
                     //    url: 'http://localhost:3000/admin/pupils/api/examStatus/' + id,
                         form: req.body
                     },
                     function (error, response, body) {
-                        console.log("!!!!!!!!!!!!!!!!", error)
                         if (!error && response.statusCode == 200) {
-                            updateDBFile();
-                            error, response, body
-                            /*sendResp(res, {
-                                error: error,
-                                body: body
-                            })*/
-                           // sendResp(res, 'ok')
+                            updateDBFile();                            
+                            sendResp(res, 'ok')
                         }
-                        sendResp(res, {
-                            error: error,
-                            body: body,
-                            statusCode: response.statusCode
-                        })
                     }
                 );
                 
