@@ -242,7 +242,7 @@ uploadRouter.route('/cleanData')
           
         function onFileUploaded () {
             setCleanData(uploadedFile.data)
-            res.redirect('/admin/generate.html');
+            res.redirect('/admin/');
         }
     });
 

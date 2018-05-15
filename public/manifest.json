@@ -37,7 +37,7 @@
       "type": "image\/png",
       "density": "4.0"
      }],
-  "start_url": "/index.html",
+  "start_url": "https://lyceumexams.herokuapp.com/app",
   "display": "standalone",
   "background_color": "#5c6bc0",
   "theme_color": "#5c6bc0"
