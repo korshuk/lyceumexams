@@ -109,8 +109,8 @@ pupilsRouter.route('/:id')
                 db.pupilsS[i].examStatus = req.body.examStatus;
                 
                 request.post({
-                //    url: 'http://lyceum.by/admin/pupils/api/examStatus/pupils/' + id,
-                        url: 'http://localhost:3000/admin/pupils/api/examStatus/' + id,
+                    url: 'http://lyceum.by/admin/pupils/api/examStatus/pupils/' + id,
+                    //    url: 'http://localhost:3000/admin/pupils/api/examStatus/' + id,
                         form: req.body
                     },
                     function (error, response, body) {
